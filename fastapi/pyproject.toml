@@ -1,0 +1,25 @@
+[project]
+name = "fastapi-app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "VictorArxujo", email = "victorsantosaraujo11@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "alembic>=1.18.5",
+    "email-validator>=2.3.0",
+    "fastapi>=0.141.1",
+    "passlib[bcrypt]>=1.7.4",
+    "psycopg[binary]>=3.3.4",
+    "pydantic-settings>=2.14.2",
+    "pymodbus>=3.14.0",
+    "python-jose[cryptography]>=3.5.0",
+    "python-multipart>=0.0.32",
+    "sqlalchemy>=2.0.51",
+    "uvicorn[standard]>=0.52.1",
+]
+
+[tool.uv]
+package = false

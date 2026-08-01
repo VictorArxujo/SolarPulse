@@ -1,0 +1,48 @@
+services:
+  wireguard:
+    image: linuxserver/wireguard:latest
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Sao_Paulo
+    volumes:
+      - ./docker/wireguard/config:/config
+      - /lib/modules:/lib/modules
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    # a API roda em network_mode: service:wireguard, então é aqui que a
+    # porta 8000 (uvicorn) precisa ser publicada para o host
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    container_name: db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=religamento
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: api
+    network_mode: "service:wireguard"
+    depends_on:
+      - wireguard
+      - db
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  db_data:
