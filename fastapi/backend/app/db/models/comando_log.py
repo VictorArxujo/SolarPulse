@@ -10,6 +10,7 @@ from app.db.base import Base
 class AcaoComando(str, enum.Enum):
     religar = "religar"
     abrir = "abrir"
+    reset = "reset"
 
 
 class ComandoLog(Base):

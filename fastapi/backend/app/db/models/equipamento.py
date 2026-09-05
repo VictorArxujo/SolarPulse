@@ -23,13 +23,22 @@ class Equipamento(Base):
         Enum(TipoEquipamento), default=TipoEquipamento.religador
     )
 
-    # endereço alcançado pelo container através do túnel WireGuard da usina
-    ip: Mapped[str] = mapped_column(String(45))
-    porta: Mapped[int] = mapped_column(default=502)  # porta padrão Modbus TCP
-
-    # endereços Modbus usados para ler status e comandar o equipamento
-    coil_comando: Mapped[int] = mapped_column(default=0)
+    # Relé de proteção (Pextron URP 6100 / URP 600X): só leitura — tensão,
+    # bandeirolas de proteção. Endereço próprio, pode divergir do DigiRail.
+    ip_rele: Mapped[str] = mapped_column(String(45), default="")
+    porta_rele: Mapped[int] = mapped_column(default=502)
+    unit_id_rele: Mapped[int] = mapped_column(default=1)
+    modelo_rele: Mapped[str] = mapped_column(String(30), default="URP 6100")
     registrador_status: Mapped[int] = mapped_column(default=0)
+
+    # DigiRail (gateway Modbus TCP -> paralelismo no relé): é nele que os
+    # comandos de pulso (ligar/desligar/reset) são escritos.
+    ip_digirail: Mapped[str] = mapped_column(String(45), default="")
+    porta_digirail: Mapped[int] = mapped_column(default=502)
+    unit_id_digirail: Mapped[int] = mapped_column(default=1)
+    addr_ligar: Mapped[int] = mapped_column(default=0)
+    addr_desligar: Mapped[int] = mapped_column(default=0)
+    addr_reset: Mapped[int] = mapped_column(default=0)
 
     ativo: Mapped[bool] = mapped_column(default=True)
 
