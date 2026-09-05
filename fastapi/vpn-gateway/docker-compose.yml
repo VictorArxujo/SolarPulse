@@ -1,0 +1,30 @@
+services:
+  wireguard:
+    image: linuxserver/wireguard:latest
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Sao_Paulo
+    volumes:
+      - ./wireguard/config:/config
+      - /lib/modules:/lib/modules
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      app_net:
+        aliases:
+          - api
+    # a api do backend roda em network_mode: "container:wireguard" (stack
+    # "religamento"), então é aqui que a porta 8000 (uvicorn) precisa ser
+    # publicada para o host
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+networks:
+  app_net:
+    name: app_net

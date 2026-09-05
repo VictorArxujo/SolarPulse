@@ -1,25 +1,9 @@
+# Stack "religamento" — depende da stack "vpn-gateway" já estar de pé
+# (o container "wireguard" precisa existir antes, pois a api usa
+# network_mode: "container:wireguard"). Suba nesta ordem:
+#   docker compose -f vpn-gateway/docker-compose.yml up -d
+#   docker compose up -d
 services:
-  wireguard:
-    image: linuxserver/wireguard:latest
-    container_name: wireguard
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Sao_Paulo
-    volumes:
-      - ./docker/wireguard/config:/config
-      - /lib/modules:/lib/modules
-    sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
-    # a API roda em network_mode: service:wireguard, então é aqui que a
-    # porta 8000 (uvicorn) precisa ser publicada para o host
-    ports:
-      - "8000:8000"
-    restart: unless-stopped
-
   db:
     image: postgres:17-alpine
     container_name: db
@@ -29,20 +13,40 @@ services:
       - POSTGRES_DB=religamento
     volumes:
       - db_data:/var/lib/postgresql/data
+    # 5433 no host pra não colidir com um Postgres local na 5432;
+    # útil pra rodar alembic fora do container durante o desenvolvimento
+    ports:
+      - "5433:5432"
+    networks:
+      - app_net
     restart: unless-stopped
 
   api:
     build:
-      context: .
-      dockerfile: docker/app/Dockerfile
+      context: ./backend
     container_name: api
-    network_mode: "service:wireguard"
+    # sem rede própria: empresta 100% o netns do container "wireguard"
+    # (stack vpn-gateway), é assim que alcança os IPs das usinas via túnel
+    network_mode: "container:wireguard"
     depends_on:
-      - wireguard
       - db
     env_file:
-      - .env
+      - ./backend/.env
     restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    networks:
+      - app_net
+    depends_on:
+      - api
+    restart: unless-stopped
+
+networks:
+  app_net:
+    external: true
 
 volumes:
   db_data:
