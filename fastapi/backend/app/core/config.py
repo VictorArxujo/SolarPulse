@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
 
+    # Uma única interface WireGuard atende todas as usinas; cada usina é um
+    # peer dela, identificado pelo AllowedIPs (a subnet_cidr da usina).
+    wg_interface: str = "wg0"
+
     modbus_timeout_seconds: float = 3.0
 
 

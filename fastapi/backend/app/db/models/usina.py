@@ -11,10 +11,10 @@ class Usina(Base):
     nome: Mapped[str] = mapped_column(String(120))
     localizacao: Mapped[str] = mapped_column(String(255), default="")
 
-    # nome da interface WireGuard dedicada a esta usina, ex: "wg-usina1"
-    wg_interface: Mapped[str] = mapped_column(String(50), unique=True)
-    # sub-rede local da usina alcançada através do túnel, ex: "10.10.1.0/24"
-    subnet_cidr: Mapped[str] = mapped_column(String(50))
+    # Sub-rede local da usina alcançada pelo túnel, ex: "10.10.1.0/24".
+    # É também o AllowedIPs do peer desta usina, e é por ela que o status do
+    # túnel encontra o peer certo dentro da interface compartilhada.
+    subnet_cidr: Mapped[str] = mapped_column(String(50), unique=True)
 
     ativo: Mapped[bool] = mapped_column(default=True)
 

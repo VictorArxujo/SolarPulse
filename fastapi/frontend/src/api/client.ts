@@ -50,7 +50,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export interface UsinaConfig {
   nome: string;
   localizacao: string;
-  wg_interface: string;
+  /** Sub-rede da usina; é o AllowedIPs do peer dela no túnel compartilhado. */
   subnet_cidr: string;
 }
 

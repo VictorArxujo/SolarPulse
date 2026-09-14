@@ -1,0 +1,61 @@
+# Stack de BANCADA — mesma aplicação, sem o túnel WireGuard.
+#
+# Serve para testar o equipamento ligado direto na LAN (ou no cabo direto do
+# PC), antes de existir VPN. A diferença para o docker-compose.yml de produção
+# é só a rede da api: aqui ela tem rede Docker normal e publica a 8000 ela
+# mesma, em vez de emprestar o netns do container "wireguard".
+#
+#   docker compose -f docker-compose.lan.yml up -d --build
+#
+# Consequência esperada: /usinas/{id}/tunnel/status sempre responde up=false
+# (não há interface wg), e o alcance aos IPs dos equipamentos passa a ser
+# a rota normal do host, não o túnel.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=religamento
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - app_net
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+    container_name: api
+    networks:
+      - app_net
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    networks:
+      - app_net
+    # 8080 está ocupada por outro projeto na sua máquina
+    ports:
+      - "8081:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+networks:
+  app_net:
+    external: true
+
+volumes:
+  db_data:

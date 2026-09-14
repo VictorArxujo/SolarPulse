@@ -184,7 +184,7 @@ export default function Dashboard() {
   async function criarUsina(dados: UsinaConfig) {
     const criada = await api.criarUsina(dados);
     setUsinas((prev) => [...prev, criada]);
-    setTunnelByUsina((prev) => ({ ...prev, [criada.id]: { wg_interface: criada.wg_interface, up: false, ultimo_handshake_segundos: null, detalhe: 'ainda não consultado' } }));
+    setTunnelByUsina((prev) => ({ ...prev, [criada.id]: { wg_interface: '', up: false, ultimo_handshake_segundos: null, detalhe: 'ainda não consultado' } }));
     setEquipByUsina((prev) => ({ ...prev, [criada.id]: [] }));
     setCriandoUsina(false);
   }
@@ -211,6 +211,21 @@ export default function Dashboard() {
   const onlineCount = usinas.filter((u) => tunnelByUsina[u.id]?.up).length;
   const offlineCount = usinas.length - onlineCount;
 
+  const usinaAberta = usinas.find((u) => u.id === expandidaId) ?? null;
+  const equipamentosAbertos = usinaAberta ? equipByUsina[usinaAberta.id] ?? [] : [];
+
+  // Um equipamento só é operável se estiver ativo E tiver DigiRail — sem
+  // DigiRail não existe caminho de escrita, então ele não conta como pronto.
+  const todosEquipamentos = usinas.flatMap((u) => equipByUsina[u.id] ?? []);
+  const operaveisTotal = todosEquipamentos.filter((e) => e.ativo && e.ip_digirail).length;
+
+  const resumo = [
+    { rotulo: 'Usinas', valor: String(usinas.length) },
+    { rotulo: 'Túneis online', valor: String(onlineCount), sufixo: `de ${usinas.length}` },
+    { rotulo: 'Equipamentos', valor: String(todosEquipamentos.length) },
+    { rotulo: 'Operáveis', valor: String(operaveisTotal), sufixo: `de ${todosEquipamentos.length}` },
+  ];
+
   const tabs: { key: Filtro; label: string }[] = [
     { key: 'all', label: `Todas (${usinas.length})` },
     { key: 'online', label: `Online (${onlineCount})` },
@@ -218,40 +233,40 @@ export default function Dashboard() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', width: '100%', background: '#f5f6f8', color: '#1c2126' }}>
+    <div style={{ minHeight: '100vh', width: '100%', background: 'var(--bg)', color: 'var(--text)' }}>
       <div
         style={{
           height: 56,
-          borderBottom: '1px solid #e4e7ec',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 24px',
           position: 'sticky',
           top: 0,
-          background: '#ffffff',
+          background: 'var(--surface)',
           zIndex: 5,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 6, background: '#eaf1ff', border: '1px solid #cfe0ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2f6fe4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <div style={{ width: 30, height: 30, borderRadius: 6, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13 2 L4 14 h6 l-1 8 9-12 h-6 z" />
             </svg>
           </div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>Religamento Remoto</div>
-            <div style={{ fontSize: 10.5, color: '#7a8494', marginTop: 1 }}>Supervisão e comando via Modbus TCP</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-2)', marginTop: 1 }}>Supervisão e comando via Modbus TCP</div>
           </div>
         </div>
-        <button onClick={logout} style={{ fontSize: 12, color: '#57606f', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <button onClick={logout} style={{ fontSize: 12, color: 'var(--text-2)', background: 'none', border: 'none', cursor: 'pointer' }}>
           Sair
         </button>
       </div>
 
-      <div style={{ maxWidth: 980, margin: '0 auto', padding: '20px 24px 60px' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 24px 60px' }}>
         {erro && (
-          <div style={{ marginBottom: 16, fontSize: 13, color: '#b3261e', background: '#fbeaea', border: '1px solid #f3caca', borderRadius: 6, padding: '10px 14px' }}>
+          <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--danger)', background: 'var(--danger-soft)', border: '1px solid var(--danger-border)', borderRadius: 6, padding: '10px 14px' }}>
             {erro}
           </div>
         )}
@@ -261,9 +276,9 @@ export default function Dashboard() {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar usina ou localização"
-            style={{ height: 34, width: 260, padding: '0 12px', border: '1px solid #d7dbe3', borderRadius: 6, fontSize: 12.5, color: '#1c2126', background: '#fff' }}
+            style={{ height: 34, width: 260, padding: '0 12px', border: '1px solid var(--border-strong)', borderRadius: 6, fontSize: 12.5, color: 'var(--text)', background: 'var(--surface-3)' }}
           />
-          <div style={{ fontSize: 11.5, color: '#7a8494', fontFamily: "'IBM Plex Mono', monospace" }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-2)', fontFamily: "'IBM Plex Mono', monospace" }}>
             {carregando ? 'carregando…' : `${usinasFiltradas.length} usina(s)`}
           </div>
           <button onClick={() => setCriandoUsina(true)} style={{ ...editBtnStyle, marginLeft: 'auto' }}>
@@ -271,7 +286,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 22, borderBottom: '1px solid #e4e7ec', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 22, borderBottom: '1px solid var(--border)', marginBottom: 14 }}>
           {tabs.map((tab) => (
             <div
               key={tab.key}
@@ -281,8 +296,8 @@ export default function Dashboard() {
                 padding: '10px 2px',
                 fontSize: 13,
                 fontWeight: 500,
-                color: filtro === tab.key ? '#1c2126' : '#7a8494',
-                borderBottom: `2px solid ${filtro === tab.key ? '#1c2126' : 'transparent'}`,
+                color: filtro === tab.key ? 'var(--text)' : 'var(--text-2)',
+                borderBottom: `2px solid ${filtro === tab.key ? 'var(--text)' : 'transparent'}`,
               }}
             >
               {tab.label}
@@ -291,190 +306,296 @@ export default function Dashboard() {
         </div>
 
         {!carregando && usinasFiltradas.length === 0 && (
-          <div style={{ padding: '32px 20px', textAlign: 'center', fontSize: 13, color: '#7a8494', background: '#fff', border: '1px solid #e4e7ec', borderRadius: 8 }}>
+          <div style={{ padding: '32px 20px', textAlign: 'center', fontSize: 13, color: 'var(--text-2)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10 }}>
             Nenhuma usina encontrada.
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Faixa de indicadores da frota. Os valores ficam em tinta neutra de
+            propósito — quem carrega estado é o cartão, não o número. */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: 1,
+            background: 'var(--divider)',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            overflow: 'hidden',
+            marginBottom: 16,
+          }}
+        >
+          {resumo.map((item) => (
+            <div key={item.rotulo} style={{ background: 'var(--surface)', padding: '13px 16px' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {item.rotulo}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
+                <span style={{ fontSize: 25, fontWeight: 600, lineHeight: 1 }}>{item.valor}</span>
+                {item.sufixo && <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>{item.sufixo}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: 14, alignItems: 'start' }}>
           {usinasFiltradas.map((usina) => {
             const tunnel = tunnelByUsina[usina.id];
-            const expandida = expandidaId === usina.id;
             const equipamentos = equipByUsina[usina.id] ?? [];
+            const operaveis = equipamentos.filter((e) => e.ativo && e.ip_digirail).length;
+            const prontidao = equipamentos.length ? operaveis / equipamentos.length : 0;
+            const selecionada = expandidaId === usina.id;
+
+            // O medidor carrega severidade: tudo pronto, parcial ou nada.
+            const tom =
+              equipamentos.length === 0
+                ? 'var(--text-3)'
+                : prontidao === 1
+                  ? 'var(--ok)'
+                  : prontidao > 0
+                    ? 'var(--warn)'
+                    : 'var(--danger)';
+            // Trilho = passo claro do mesmo tom, nunca cinza neutro.
+            const trilho =
+              equipamentos.length === 0
+                ? 'var(--divider)'
+                : prontidao === 1
+                  ? 'var(--ok-soft)'
+                  : prontidao > 0
+                    ? 'var(--warn-soft)'
+                    : 'var(--danger-soft)';
+
+            const metricas = [
+              { rotulo: 'Equipamentos', valor: String(equipamentos.length) },
+              { rotulo: 'Operáveis', valor: String(operaveis) },
+              {
+                rotulo: 'Handshake',
+                valor: tunnel?.ultimo_handshake_segundos != null ? `${tunnel.ultimo_handshake_segundos}s` : '—',
+              },
+            ];
 
             return (
-              <div key={usina.id} style={{ background: '#fff', border: '1px solid #e4e7ec', borderRadius: 8, overflow: 'hidden' }}>
-                <div
-                  onClick={() => setExpandidaId(expandida ? null : usina.id)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', cursor: 'pointer' }}
-                >
+              <button
+                key={usina.id}
+                type="button"
+                className="card-usina"
+                aria-pressed={selecionada}
+                onClick={() => setExpandidaId(selecionada ? null : usina.id)}
+              >
+                {/* faixa de estado do túnel */}
+                <span style={{ height: 3, width: '100%', background: tunnel?.up ? 'var(--ok)' : 'var(--danger)' }} />
+
+                <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M13 2 L4 14 h6 l-1 8 9-12 h-6 z" />
+                      </svg>
+                    </span>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {usina.nome}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {usina.localizacao || 'Localização não informada'}
+                      </div>
+                    </div>
+                    {/* estado nunca sai só na cor: ponto + rótulo */}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 999, flexShrink: 0, background: tunnel?.up ? 'var(--ok-soft)' : 'var(--danger-soft)' }}>
+                      <span style={{ width: 5, height: 5, borderRadius: 999, background: tunnel?.up ? 'var(--ok)' : 'var(--danger)' }} />
+                      <span style={{ fontSize: 10.5, fontWeight: 600, color: tunnel?.up ? 'var(--ok)' : 'var(--danger)' }}>
+                        {tunnel?.up ? 'Online' : 'Offline'}
+                      </span>
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'var(--divider)', borderRadius: 6, overflow: 'hidden' }}>
+                    {metricas.map((m) => (
+                      <div key={m.rotulo} style={{ background: 'var(--surface)', padding: '9px 10px' }}>
+                        <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.1 }}>{m.valor}</div>
+                        <div style={{ fontSize: 9.5, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>
+                          {m.rotulo}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1c2126' }}>{usina.nome}</div>
-                    <div style={{ fontSize: 11.5, color: '#7a8494', marginTop: 2, fontFamily: "'IBM Plex Mono', monospace" }}>
-                      {usina.localizacao || 'localização não informada'} · {equipamentos.length} equipamento(s)
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 10.5, color: 'var(--text-3)', marginBottom: 5 }}>
+                      <span>Prontidão para comando</span>
+                      <span style={{ color: tom, fontWeight: 600 }}>{Math.round(prontidao * 100)}%</span>
+                    </div>
+                    <div className="medidor" style={{ background: trilho }}>
+                      <i style={{ width: `${prontidao * 100}%`, background: tom }} />
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 999, background: tunnel?.up ? '#e9f7ef' : '#fbeaea' }}>
-                      <span style={{ width: 6, height: 6, borderRadius: 999, background: tunnel?.up ? '#1f8a57' : '#c23b3b' }} />
-                      <span style={{ fontSize: 11, fontWeight: 500, color: tunnel?.up ? '#1f8a57' : '#b3261e' }}>
-                        {tunnel?.up ? 'túnel ok' : 'túnel offline'}
-                      </span>
-                    </div>
-                    <svg
-                      width="15"
-                      height="15"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#7a8494"
-                      strokeWidth="2"
-                      style={{ transition: 'transform .15s ease', transform: `rotate(${expandida ? 180 : 0}deg)` }}
-                    >
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 11, borderTop: '1px solid var(--divider)' }}>
+                    <span style={{ fontSize: 10.5, color: 'var(--text-3)', fontFamily: "'IBM Plex Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {usina.subnet_cidr || 'sem sub-rede'}
+                    </span>
+                    {/* seta em SVG: glifo de texto vira tofu quando a fonte não carrega */}
+                    <span className="card-seta" style={{ marginLeft: 'auto', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: 'var(--accent)' }}>
+                      {selecionada ? 'Fechar' : 'Abrir'}
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="9 6 15 12 9 18" />
+                      </svg>
+                    </span>
                   </div>
                 </div>
+              </button>
+            );
+          })}
+        </div>
 
-                {expandida && (
-                  <div style={{ borderTop: '1px solid #eef0f3' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
-                      <button onClick={() => setCriandoEquipEmUsina(usina.id)} style={editBtnStyle}>
-                        + Novo equipamento
-                      </button>
+        {usinaAberta && (
+          <div style={{ marginTop: 16, background: 'var(--surface)', border: '1px solid var(--accent-border)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 18px', borderBottom: '1px solid var(--divider)' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{usinaAberta.nome}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2, fontFamily: "'IBM Plex Mono', monospace" }}>
+                  {equipamentosAbertos.length} equipamento(s) · {usinaAberta.subnet_cidr || 'sem sub-rede'}
+                </div>
+              </div>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                <button onClick={() => setCriandoEquipEmUsina(usinaAberta.id)} style={editBtnStyle}>
+                  + Novo equipamento
+                </button>
+                <button onClick={() => setExpandidaId(null)} style={pingBtnStyle}>
+                  Fechar
+                </button>
+              </div>
+            </div>
+
+            {equipamentosAbertos.length === 0 && (
+              <div style={{ padding: '16px 18px', fontSize: 12.5, color: 'var(--text-2)' }}>Nenhum equipamento cadastrado.</div>
+            )}
+          {equipamentosAbertos.map((equip) => {
+            const rele = releByEquip[equip.id];
+            const digirail = digirailByEquip[equip.id];
+            const resultado = resultadoByEquip[equip.id];
+            const releOnline = rele?.status?.online ?? false;
+            const fechado = rele?.status?.fechado ?? null;
+            const digirailOk = digirail?.ok ?? false;
+            const comandosLiberados = digirailOk;
+
+            return (
+              <div key={equip.id} style={{ padding: '14px 18px', borderBottom: '1px solid var(--divider)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{equip.nome}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2, fontFamily: "'IBM Plex Mono', monospace", textTransform: 'capitalize' }}>
+                      {equip.tipo}
                     </div>
-                    {equipamentos.length === 0 && (
-                      <div style={{ padding: '16px 18px', fontSize: 12.5, color: '#7a8494' }}>Nenhum equipamento cadastrado.</div>
-                    )}
-                    {equipamentos.map((equip) => {
-                      const rele = releByEquip[equip.id];
-                      const digirail = digirailByEquip[equip.id];
-                      const resultado = resultadoByEquip[equip.id];
-                      const releOnline = rele?.status?.online ?? false;
-                      const fechado = rele?.status?.fechado ?? null;
-                      const digirailOk = digirail?.ok ?? false;
-                      const comandosLiberados = digirailOk;
-
-                      return (
-                        <div key={equip.id} style={{ padding: '14px 18px', borderBottom: '1px solid #f2f3f5', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: '#1c2126' }}>{equip.nome}</div>
-                              <div style={{ fontSize: 11, color: '#7a8494', marginTop: 2, fontFamily: "'IBM Plex Mono', monospace", textTransform: 'capitalize' }}>
-                                {equip.tipo}
-                              </div>
-                            </div>
-                            <button onClick={() => setEditando(equip)} style={editBtnStyle}>
-                              Editar parâmetros
-                            </button>
-                          </div>
-
-                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                            <fieldset style={deviceBoxStyle}>
-                              <legend style={legendStyle}>Relé de proteção · {equip.modelo_rele.nome}</legend>
-                              <div style={{ fontSize: 11, color: '#7a8494', fontFamily: "'IBM Plex Mono', monospace", marginBottom: 8 }}>
-                                {equip.ip_rele || '—'}:{equip.porta_rele}
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                                <button onClick={() => pingRele(equip.id)} disabled={rele?.loading} style={pingBtnStyle}>
-                                  {rele?.loading ? 'Consultando…' : 'Status'}
-                                </button>
-                                <span style={{ fontSize: 11.5 }}>
-                                  {!rele && <span style={{ color: '#9aa2af' }}>ainda não consultado</span>}
-                                  {rele?.erro && <span style={{ color: '#b3261e' }}>{rele.erro}</span>}
-                                  {rele?.status && (
-                                    <span style={{ color: releOnline ? '#1f8a57' : '#b3261e' }}>
-                                      {releOnline ? (fechado === true ? 'fechado' : fechado === false ? 'aberto' : 'online') : 'sem resposta'}
-                                      {rele.verificadoAs ? ` · ${rele.verificadoAs}` : ''}
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                              <div style={{ fontSize: 10.5, color: '#b3812f', marginTop: 6 }}>Tensão: não implementado</div>
-                              <PingIcmpBox
-                                estado={icmpByChave[`${equip.id}:rele`]}
-                                onPing={() => pingIcmp(equip.id, 'rele')}
-                              />
-                            </fieldset>
-
-                            <fieldset style={deviceBoxStyle}>
-                              <legend style={legendStyle}>DigiRail</legend>
-                              <div style={{ fontSize: 11, color: '#7a8494', fontFamily: "'IBM Plex Mono', monospace", marginBottom: 8 }}>
-                                {equip.ip_digirail || '—'}:{equip.porta_digirail}
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                                <button onClick={() => testarDigirail(equip.id)} disabled={digirail?.loading} style={pingBtnStyle}>
-                                  {digirail?.loading ? 'Testando…' : 'Testar'}
-                                </button>
-                                <span style={{ fontSize: 11.5 }}>
-                                  {!digirail && <span style={{ color: '#9aa2af' }}>ainda não testado</span>}
-                                  {digirail && (
-                                    <span style={{ color: digirail.ok ? '#1f8a57' : '#b3261e' }}>
-                                      {digirail.ok ? 'ok' : digirail.detalhe}
-                                      {digirail.verificadoAs ? ` · ${digirail.verificadoAs}` : ''}
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                              <PingIcmpBox
-                                estado={icmpByChave[`${equip.id}:digirail`]}
-                                onPing={() => pingIcmp(equip.id, 'digirail')}
-                              />
-                            </fieldset>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <button
-                              disabled={!comandosLiberados || fechado === true}
-                              onClick={() => pedirConfirmacao(equip.id, 'religar', equip.nome)}
-                              style={cmdBtnStyle('#1f8a57', !comandosLiberados || fechado === true)}
-                            >
-                              Ligar
-                            </button>
-                            <button
-                              disabled={!comandosLiberados || fechado === false}
-                              onClick={() => pedirConfirmacao(equip.id, 'abrir', equip.nome)}
-                              style={cmdBtnStyle('#c23b3b', !comandosLiberados || fechado === false)}
-                            >
-                              Desligar
-                            </button>
-                            <button
-                              disabled={!comandosLiberados}
-                              onClick={() => pedirConfirmacao(equip.id, 'reset', equip.nome)}
-                              style={cmdBtnStyle('#2f6fe4', !comandosLiberados)}
-                            >
-                              Reset
-                            </button>
-                            {!comandosLiberados && (
-                              <span style={{ fontSize: 11, color: '#9aa2af' }}>teste o DigiRail antes de comandar</span>
-                            )}
-                          </div>
-
-                          {resultado && (
-                            <div style={{ fontSize: 11.5, color: resultado.sucesso ? '#1f8a57' : '#b3261e' }}>{resultado.texto}</div>
-                          )}
-                        </div>
-                      );
-                    })}
                   </div>
+                  <button onClick={() => setEditando(equip)} style={editBtnStyle}>
+                    Editar parâmetros
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <fieldset style={deviceBoxStyle}>
+                    <legend style={legendStyle}>Relé de proteção · {equip.modelo_rele.nome}</legend>
+                    <div style={{ fontSize: 11, color: 'var(--text-2)', fontFamily: "'IBM Plex Mono', monospace", marginBottom: 8 }}>
+                      {equip.ip_rele || '—'}:{equip.porta_rele}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <button onClick={() => pingRele(equip.id)} disabled={rele?.loading} style={pingBtnStyle}>
+                        {rele?.loading ? 'Consultando…' : 'Status'}
+                      </button>
+                      <span style={{ fontSize: 11.5 }}>
+                        {!rele && <span style={{ color: 'var(--text-3)' }}>ainda não consultado</span>}
+                        {rele?.erro && <span style={{ color: 'var(--danger)' }}>{rele.erro}</span>}
+                        {rele?.status && (
+                          <span style={{ color: releOnline ? 'var(--ok)' : 'var(--danger)' }}>
+                            {releOnline ? (fechado === true ? 'fechado' : fechado === false ? 'aberto' : 'online') : 'sem resposta'}
+                            {rele.verificadoAs ? ` · ${rele.verificadoAs}` : ''}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 10.5, color: 'var(--warn)', marginTop: 6 }}>Tensão: não implementado</div>
+                    <PingIcmpBox
+                      estado={icmpByChave[`${equip.id}:rele`]}
+                      onPing={() => pingIcmp(equip.id, 'rele')}
+                    />
+                  </fieldset>
+
+                  <fieldset style={deviceBoxStyle}>
+                    <legend style={legendStyle}>DigiRail</legend>
+                    <div style={{ fontSize: 11, color: 'var(--text-2)', fontFamily: "'IBM Plex Mono', monospace", marginBottom: 8 }}>
+                      {equip.ip_digirail || '—'}:{equip.porta_digirail}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <button onClick={() => testarDigirail(equip.id)} disabled={digirail?.loading} style={pingBtnStyle}>
+                        {digirail?.loading ? 'Testando…' : 'Testar'}
+                      </button>
+                      <span style={{ fontSize: 11.5 }}>
+                        {!digirail && <span style={{ color: 'var(--text-3)' }}>ainda não testado</span>}
+                        {digirail && (
+                          <span style={{ color: digirail.ok ? 'var(--ok)' : 'var(--danger)' }}>
+                            {digirail.ok ? 'ok' : digirail.detalhe}
+                            {digirail.verificadoAs ? ` · ${digirail.verificadoAs}` : ''}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <PingIcmpBox
+                      estado={icmpByChave[`${equip.id}:digirail`]}
+                      onPing={() => pingIcmp(equip.id, 'digirail')}
+                    />
+                  </fieldset>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button
+                    disabled={!comandosLiberados || fechado === true}
+                    onClick={() => pedirConfirmacao(equip.id, 'religar', equip.nome)}
+                    style={cmdBtnStyle('var(--btn-ok)', !comandosLiberados || fechado === true)}
+                  >
+                    Ligar
+                  </button>
+                  <button
+                    disabled={!comandosLiberados || fechado === false}
+                    onClick={() => pedirConfirmacao(equip.id, 'abrir', equip.nome)}
+                    style={cmdBtnStyle('var(--btn-danger)', !comandosLiberados || fechado === false)}
+                  >
+                    Desligar
+                  </button>
+                  <button
+                    disabled={!comandosLiberados}
+                    onClick={() => pedirConfirmacao(equip.id, 'reset', equip.nome)}
+                    style={cmdBtnStyle('var(--btn-accent)', !comandosLiberados)}
+                  >
+                    Reset
+                  </button>
+                  {!comandosLiberados && (
+                    <span style={{ fontSize: 11, color: 'var(--text-3)' }}>teste o DigiRail antes de comandar</span>
+                  )}
+                </div>
+
+                {resultado && (
+                  <div style={{ fontSize: 11.5, color: resultado.sucesso ? 'var(--ok)' : 'var(--danger)' }}>{resultado.texto}</div>
                 )}
               </div>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
 
       {pendente && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(20,22,27,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
-          <div style={{ width: 360, background: '#fff', border: '1px solid #e4e7ec', borderRadius: 8, padding: '22px 24px', boxShadow: '0 20px 48px rgba(20,22,27,0.18)' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#1c2126', marginBottom: 10 }}>Confirmação de segurança</div>
-            <div style={{ fontSize: 13, color: '#57606f', lineHeight: 1.5, marginBottom: 20 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
+          <div style={{ width: 360, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '22px 24px', boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>Confirmação de segurança</div>
+            <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5, marginBottom: 20 }}>
               Você vai atuar fisicamente no equipamento. Confirmar o comando "{pendente.label}"?
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button onClick={() => setPendente(null)} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: '#eef1f6', border: 'none', color: '#1c2126', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}>
+              <button onClick={() => setPendente(null)} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: 'var(--surface-2)', border: 'none', color: 'var(--text)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}>
                 Cancelar
               </button>
-              <button onClick={confirmar} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: '#2f6fe4', border: 'none', color: '#fff', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}>
+              <button onClick={confirmar} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: 'var(--btn-accent)', border: 'none', color: 'var(--btn-text)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}>
                 Confirmar
               </button>
             </div>
@@ -513,7 +634,7 @@ function NovaUsinaModal({
   onCancelar: () => void;
   onSalvar: (dados: UsinaConfig) => Promise<void>;
 }) {
-  const [form, setForm] = useState<UsinaConfig>({ nome: '', localizacao: '', wg_interface: '', subnet_cidr: '' });
+  const [form, setForm] = useState<UsinaConfig>({ nome: '', localizacao: '', subnet_cidr: '' });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -534,10 +655,10 @@ function NovaUsinaModal({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(20,22,27,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
-      <div style={{ width: 420, background: '#fff', border: '1px solid #e4e7ec', borderRadius: 8, padding: '22px 24px', boxShadow: '0 20px 48px rgba(20,22,27,0.18)' }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#1c2126', marginBottom: 4 }}>Nova usina</div>
-        <div style={{ fontSize: 12, color: '#7a8494', marginBottom: 18 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
+      <div style={{ width: 420, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '22px 24px', boxShadow: 'var(--shadow)' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Nova usina</div>
+        <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 18 }}>
           Depois de criar, adicione o peer correspondente no WireGuard e reinicie o container pra ela ficar acessível.
         </div>
 
@@ -547,20 +668,20 @@ function NovaUsinaModal({
         <Campo label="Localização">
           <input value={form.localizacao} onChange={(e) => campo('localizacao', e.target.value)} style={inputStyle} />
         </Campo>
-        <Campo label="Interface WireGuard">
-          <input value={form.wg_interface} onChange={(e) => campo('wg_interface', e.target.value)} placeholder="wg-nome-da-usina" style={inputStyle} />
-        </Campo>
         <Campo label="Sub-rede (CIDR)">
           <input value={form.subnet_cidr} onChange={(e) => campo('subnet_cidr', e.target.value)} placeholder="10.10.5.0/24" style={inputStyle} />
+          <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 4 }}>
+            É o AllowedIPs do peer desta usina no túnel — precisa ser única.
+          </div>
         </Campo>
 
-        {erro && <div style={{ fontSize: 12, color: '#b3261e', marginTop: 8 }}>{erro}</div>}
+        {erro && <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{erro}</div>}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
-          <button onClick={onCancelar} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: '#eef1f6', border: 'none', color: '#1c2126', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}>
+          <button onClick={onCancelar} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: 'var(--surface-2)', border: 'none', color: 'var(--text)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}>
             Cancelar
           </button>
-          <button onClick={salvar} disabled={salvando} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: '#2f6fe4', border: 'none', color: '#fff', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', opacity: salvando ? 0.7 : 1 }}>
+          <button onClick={salvar} disabled={salvando} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: 'var(--btn-accent)', border: 'none', color: 'var(--btn-text)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', opacity: salvando ? 0.7 : 1 }}>
             {salvando ? 'Salvando…' : 'Salvar'}
           </button>
         </div>
@@ -578,7 +699,7 @@ function PingIcmpBox({
 }) {
   return (
     <div style={{ marginTop: 8 }}>
-      <button onClick={onPing} disabled={estado?.loading} style={{ ...pingBtnStyle, background: '#1c2126', color: '#fff' }}>
+      <button onClick={onPing} disabled={estado?.loading} style={{ ...pingBtnStyle, background: 'var(--accent)', color: 'var(--btn-text)' }}>
         {estado?.loading ? 'Pingando…' : 'Ping'}
       </button>
       {estado && estado.linhas.length > 0 && (
@@ -586,8 +707,8 @@ function PingIcmpBox({
           style={{
             marginTop: 8,
             padding: '8px 10px',
-            background: '#14171c',
-            color: '#d7dbe3',
+            background: 'var(--surface-3)',
+            color: 'var(--text-2)',
             borderRadius: 5,
             fontSize: 11,
             fontFamily: "'IBM Plex Mono', monospace",
@@ -691,12 +812,12 @@ function EditarEquipamentoModal({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(20,22,27,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
-      <div style={{ width: 480, maxHeight: '85vh', overflowY: 'auto', background: '#fff', border: '1px solid #e4e7ec', borderRadius: 8, padding: '22px 24px', boxShadow: '0 20px 48px rgba(20,22,27,0.18)' }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#1c2126', marginBottom: 4 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
+      <div style={{ width: 480, maxHeight: '85vh', overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '22px 24px', boxShadow: 'var(--shadow)' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
           {equipamento ? `Editar ${equipamento.nome}` : 'Novo equipamento'}
         </div>
-        <div style={{ fontSize: 12, color: '#7a8494', marginBottom: 18 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 18 }}>
           {equipamento
             ? 'Use quando trocar um relé/DigiRail em campo — endereço IP, porta e registradores mudam.'
             : 'Cadastre o relé de proteção e o DigiRail desse equipamento.'}
@@ -734,7 +855,7 @@ function EditarEquipamentoModal({
                 placeholder="Ex: URP 3000"
                 style={inputStyle}
               />
-              <button type="button" onClick={confirmarNovoModelo} style={{ ...pingBtnStyle, background: '#1c2126', color: '#fff' }}>
+              <button type="button" onClick={confirmarNovoModelo} style={{ ...pingBtnStyle, background: 'var(--accent)', color: 'var(--btn-text)' }}>
                 Adicionar
               </button>
               <button type="button" onClick={() => setNovoModeloNome(null)} style={pingBtnStyle}>
@@ -784,13 +905,13 @@ function EditarEquipamentoModal({
           <input type="number" value={form.addr_reset} onChange={(e) => campo('addr_reset', Number(e.target.value))} style={inputStyle} />
         </Campo>
 
-        {erro && <div style={{ fontSize: 12, color: '#b3261e', marginTop: 8 }}>{erro}</div>}
+        {erro && <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{erro}</div>}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
-          <button onClick={onCancelar} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: '#eef1f6', border: 'none', color: '#1c2126', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}>
+          <button onClick={onCancelar} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: 'var(--surface-2)', border: 'none', color: 'var(--text)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}>
             Cancelar
           </button>
-          <button onClick={salvar} disabled={salvando} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: '#2f6fe4', border: 'none', color: '#fff', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', opacity: salvando ? 0.7 : 1 }}>
+          <button onClick={salvar} disabled={salvando} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: 'var(--btn-accent)', border: 'none', color: 'var(--btn-text)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', opacity: salvando ? 0.7 : 1 }}>
             {salvando ? 'Salvando…' : 'Salvar'}
           </button>
         </div>
@@ -802,7 +923,7 @@ function EditarEquipamentoModal({
 function Campo({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <label style={{ display: 'block', fontSize: 11, color: '#7a8494', marginBottom: 4 }}>{label}</label>
+      <label style={{ display: 'block', fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>{label}</label>
       {children}
     </div>
   );
@@ -814,7 +935,7 @@ function LinhaDupla({ children }: { children: ReactNode }) {
 
 function SecaoTitulo({ children }: { children: ReactNode }) {
   return (
-    <div style={{ fontSize: 11.5, fontWeight: 600, color: '#57606f', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '16px 0 8px' }}>
+    <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '16px 0 8px' }}>
       {children}
     </div>
   );
@@ -824,19 +945,19 @@ const inputStyle: CSSProperties = {
   width: '100%',
   height: 32,
   padding: '0 10px',
-  border: '1px solid #d7dbe3',
+  border: '1px solid var(--border-strong)',
   borderRadius: 5,
   fontSize: 12.5,
-  color: '#1c2126',
-  background: '#fff',
+  color: 'var(--text)',
+  background: 'var(--surface-3)',
 };
 
 const pingBtnStyle: CSSProperties = {
   height: 28,
   padding: '0 10px',
   borderRadius: 5,
-  background: '#eef1f6',
-  color: '#1c2126',
+  background: 'var(--surface-2)',
+  color: 'var(--text)',
   fontSize: 11,
   fontWeight: 600,
   border: 'none',
@@ -847,17 +968,17 @@ const editBtnStyle: CSSProperties = {
   height: 28,
   padding: '0 10px',
   borderRadius: 5,
-  background: '#fff',
-  color: '#2f6fe4',
+  background: 'transparent',
+  color: 'var(--accent)',
   fontSize: 11,
   fontWeight: 600,
-  border: '1px solid #cfe0ff',
+  border: '1px solid var(--accent-border)',
   cursor: 'pointer',
 };
 
 const deviceBoxStyle: CSSProperties = {
   flex: '1 1 220px',
-  border: '1px solid #e4e7ec',
+  border: '1px solid var(--border)',
   borderRadius: 6,
   padding: '10px 12px 12px',
   margin: 0,
@@ -867,7 +988,7 @@ const legendStyle: CSSProperties = {
   padding: '0 4px',
   fontSize: 10.5,
   fontWeight: 600,
-  color: '#57606f',
+  color: 'var(--text-2)',
   letterSpacing: '0.02em',
 };
 
@@ -877,7 +998,7 @@ function cmdBtnStyle(bg: string, disabled: boolean): CSSProperties {
     padding: '0 12px',
     borderRadius: 5,
     background: bg,
-    color: '#fff',
+    color: 'var(--btn-text)',
     fontSize: 11,
     fontWeight: 600,
     border: 'none',

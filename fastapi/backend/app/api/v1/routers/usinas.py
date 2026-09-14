@@ -54,7 +54,7 @@ def obter_usina(usina_id: int, db: Session = Depends(get_db)) -> Usina:
 )
 def status_tunel(usina_id: int, db: Session = Depends(get_db)) -> TunelStatus:
     usina = _get_usina_or_404(usina_id, db)
-    return get_tunnel_status(usina.wg_interface)
+    return get_tunnel_status(usina.subnet_cidr)
 
 
 @router.get(

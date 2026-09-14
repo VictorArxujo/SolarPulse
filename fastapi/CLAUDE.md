@@ -19,8 +19,10 @@ backend fala Modbus diretamente com o equipamento através do túnel VPN.
 ## Modelo de dados
 
 - `Usuario` — login/JWT, tem `role` (admin vs operador — admin cria usinas/equipamentos).
-- `Usina` — `wg_interface` (nome da interface WireGuard dedicada, ex: `wg-usina1`),
-  `subnet_cidr` (sub-rede da usina alcançada pelo túnel).
+- `Usina` — `subnet_cidr` (sub-rede da usina alcançada pelo túnel, única). Uma
+  interface WireGuard só atende todas as usinas (`WG_INTERFACE`, padrão `wg0`);
+  cada usina é um **peer** dela, identificado pelo `AllowedIPs` — que é
+  justamente a `subnet_cidr`. Não existe interface por usina.
 - `Equipamento` — pertence a uma usina; `ip`/`porta` (endereço Modbus dentro do
   túnel), `coil_comando` (religar/abrir), `registrador_status` (leitura de estado).
 - `ComandoLog` — auditoria: usuário, ação, sucesso/falha, timestamp.
@@ -28,8 +30,9 @@ backend fala Modbus diretamente com o equipamento através do túnel VPN.
 ## Fluxo principal
 
 1. Login (`/auth/login`) → JWT com `sub` (email) + `role`.
-2. `GET /usinas/{id}/tunnel/status` → `wg show <interface> latest-handshakes`
-   (handshake < 180s = túnel considerado "up").
+2. `GET /usinas/{id}/tunnel/status` → acha o peer cujo `AllowedIPs` cobre a
+   `subnet_cidr` da usina (`wg show <iface> allowed-ips`) e lê o handshake dele
+   (`wg show <iface> latest-handshakes`); < 180s = túnel "up".
 3. `GET /equipamentos/{id}/status` → `read_coils` no `registrador_status`.
 4. `POST /equipamentos/{id}/comando` → `write_coil` no `coil_comando`
    (`True`=religar, `False`=abrir) → resultado logado em `ComandoLog`.
@@ -80,8 +83,9 @@ Pontos importantes desse desenho:
   comunicação é o **nginx** do container frontend, via reverse proxy
   (`frontend/nginx.conf`), porque o JS roda no browser do usuário, que não tem
   acesso à rede interna do Docker.
-- Evoluir o projeto (nova usina) = adicionar peer no `vpn-gateway`, sem tocar
-  em nada do backend/frontend.
+- Evoluir o projeto (nova usina) = adicionar um peer na interface do
+  `vpn-gateway` com o `AllowedIPs` da sub-rede dela, e cadastrar a usina com
+  essa mesma `subnet_cidr`. Sem tocar em nada do backend/frontend.
 - Trade-off aceito: se o container `wireguard` reiniciar, a `api` perde rede
   até ser reiniciada também (netns compartilhado quebra o vínculo) — já existia
   no design anterior (era `network_mode: service:wireguard` no mesmo compose),

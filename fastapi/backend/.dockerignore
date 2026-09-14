@@ -1,0 +1,13 @@
+# O venv do host tem caminhos absolutos (/home/victor/...) e quebraria o
+# venv que o `uv sync` cria dentro da imagem.
+.venv/
+
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# segredo fica fora da imagem; chega em runtime via env_file do compose
+.env
+
+.git/
+.gitignore

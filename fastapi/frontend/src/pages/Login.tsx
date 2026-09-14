@@ -31,7 +31,7 @@ export default function Login() {
       style={{
         minHeight: '100vh',
         width: '100%',
-        background: '#0d1017',
+        background: 'var(--bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -42,7 +42,7 @@ export default function Login() {
       <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.5 }} preserveAspectRatio="none">
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1f2b" strokeWidth="1" />
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--grid)" strokeWidth="1" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
@@ -54,11 +54,11 @@ export default function Login() {
           position: 'relative',
           width: 380,
           maxWidth: 'calc(100vw - 48px)',
-          background: '#161a23',
-          border: '1px solid #262c3a',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
           borderRadius: 10,
           padding: '40px 36px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+          boxShadow: 'var(--shadow)',
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 32 }}>
@@ -67,20 +67,20 @@ export default function Login() {
               width: 52,
               height: 52,
               borderRadius: 10,
-              background: 'rgba(76,141,255,0.12)',
-              border: '1px solid rgba(76,141,255,0.3)',
+              background: 'var(--accent-soft)',
+              border: '1px solid var(--accent-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4c8dff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13 2 L4 14 h6 l-1 8 9-12 h-6 z" />
             </svg>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 19, fontWeight: 600, color: '#e7e9ee', letterSpacing: '-0.01em' }}>Religamento Remoto</div>
-            <div style={{ fontSize: 13, color: '#8b93a3', marginTop: 4 }}>
+            <div style={{ fontSize: 19, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>Religamento Remoto</div>
+            <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 4 }}>
               Supervisão e comando de relés de proteção via Modbus TCP
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function Login() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 500, color: '#8b93a3', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               E-mail
             </label>
             <input
@@ -103,7 +103,7 @@ export default function Login() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 500, color: '#8b93a3', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Senha
             </label>
             <input
@@ -118,7 +118,7 @@ export default function Login() {
           </div>
 
           {erro && (
-            <div style={{ fontSize: 12.5, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 6, padding: '8px 12px' }}>
+            <div style={{ fontSize: 12.5, color: 'var(--danger)', background: 'var(--danger-soft)', border: '1px solid var(--danger-border)', borderRadius: 6, padding: '8px 12px' }}>
               {erro}
             </div>
           )}
@@ -129,10 +129,10 @@ export default function Login() {
             style={{
               width: '100%',
               height: 44,
-              background: '#4c8dff',
+              background: 'var(--accent)',
               border: 'none',
               borderRadius: 7,
-              color: '#0d1017',
+              color: 'var(--bg)',
               fontSize: 14.5,
               fontWeight: 600,
               cursor: carregando ? 'default' : 'pointer',
@@ -144,12 +144,12 @@ export default function Login() {
           </button>
         </div>
 
-        <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #21262f', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5b6373" strokeWidth="2">
+        <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--divider)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2">
             <rect x="3" y="11" width="18" height="10" rx="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <span style={{ fontSize: 11.5, color: '#5b6373', fontFamily: "'IBM Plex Mono', monospace" }}>acesso restrito</span>
+          <span style={{ fontSize: 11.5, color: 'var(--text-3)', fontFamily: "'IBM Plex Mono', monospace" }}>acesso restrito</span>
         </div>
       </form>
     </div>
@@ -159,10 +159,10 @@ export default function Login() {
 const inputStyle: CSSProperties = {
   width: '100%',
   height: 42,
-  background: '#10131a',
-  border: '1px solid #2a3142',
+  background: 'var(--surface-3)',
+  border: '1px solid var(--border-strong)',
   borderRadius: 7,
-  color: '#e7e9ee',
+  color: 'var(--text)',
   fontSize: 14,
   padding: '0 14px',
 };

@@ -4,7 +4,6 @@ from pydantic import BaseModel, ConfigDict
 class UsinaCreate(BaseModel):
     nome: str
     localizacao: str = ""
-    wg_interface: str
     subnet_cidr: str
 
 
@@ -14,7 +13,6 @@ class UsinaOut(BaseModel):
     id: int
     nome: str
     localizacao: str
-    wg_interface: str
     subnet_cidr: str
     ativo: bool
 
