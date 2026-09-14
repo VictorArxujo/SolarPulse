@@ -26,6 +26,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
 
+  if (res.status === 401) {
+    setToken(null);
+    window.location.assign('/login');
+    throw new ApiError(401, 'Sessão expirada — faça login novamente.');
+  }
+
   if (!res.ok) {
     let detail = res.statusText;
     try {
@@ -41,12 +47,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
-export interface Usina {
-  id: number;
+export interface UsinaConfig {
   nome: string;
   localizacao: string;
   wg_interface: string;
   subnet_cidr: string;
+}
+
+export interface Usina extends UsinaConfig {
+  id: number;
   ativo: boolean;
 }
 
@@ -59,6 +68,15 @@ export interface TunelStatus {
 
 export type TipoEquipamento = 'religador' | 'disjuntor' | 'outro';
 
+export interface ModeloReleConfig {
+  nome: string;
+  fabricante: string;
+}
+
+export interface ModeloRele extends ModeloReleConfig {
+  id: number;
+}
+
 export interface EquipamentoConfig {
   nome: string;
   tipo: TipoEquipamento;
@@ -66,7 +84,7 @@ export interface EquipamentoConfig {
   ip_rele: string;
   porta_rele: number;
   unit_id_rele: number;
-  modelo_rele: string;
+  modelo_rele_id: number;
   registrador_status: number;
 
   ip_digirail: string;
@@ -81,6 +99,7 @@ export interface Equipamento extends EquipamentoConfig {
   id: number;
   usina_id: number;
   ativo: boolean;
+  modelo_rele: ModeloRele;
 }
 
 export interface EquipamentoStatus {
@@ -126,9 +145,29 @@ export const api = {
     return data.access_token as string;
   },
 
+  listarModelosRele: () => request<ModeloRele[]>('/modelos-rele'),
+  criarModeloRele: (dados: ModeloReleConfig) =>
+    request<ModeloRele>('/modelos-rele', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados),
+    }),
+
   listarUsinas: () => request<Usina[]>('/usinas'),
+  criarUsina: (dados: UsinaConfig) =>
+    request<Usina>('/usinas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados),
+    }),
   statusTunel: (usinaId: number) => request<TunelStatus>(`/usinas/${usinaId}/tunnel/status`),
   listarEquipamentos: (usinaId: number) => request<Equipamento[]>(`/usinas/${usinaId}/equipamentos`),
+  criarEquipamento: (usinaId: number, dados: EquipamentoConfig) =>
+    request<Equipamento>(`/usinas/${usinaId}/equipamentos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados),
+    }),
   statusEquipamento: (equipamentoId: number) =>
     request<EquipamentoStatus>(`/equipamentos/${equipamentoId}/status`),
   testarDigirail: (equipamentoId: number) =>
@@ -145,6 +184,45 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ acao }),
     }),
+
+  async pingIcmp(
+    equipamentoId: number,
+    alvo: 'rele' | 'digirail',
+    onLinha: (linha: string) => void,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const headers = new Headers();
+    if (authToken) headers.set('Authorization', `Bearer ${authToken}`);
+
+    const res = await fetch(`${BASE}/equipamentos/${equipamentoId}/ping?alvo=${alvo}`, { headers, signal });
+    if (res.status === 401) {
+      setToken(null);
+      window.location.assign('/login');
+      throw new ApiError(401, 'Sessão expirada — faça login novamente.');
+    }
+    if (!res.ok || !res.body) {
+      let detail = res.statusText;
+      try {
+        detail = (await res.json()).detail ?? detail;
+      } catch {
+        // sem corpo JSON
+      }
+      throw new ApiError(res.status, detail);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const linhas = buffer.split('\n');
+      buffer = linhas.pop() ?? '';
+      for (const linha of linhas) onLinha(linha);
+    }
+    if (buffer) onLinha(buffer);
+  },
 };
 
 export { ApiError };

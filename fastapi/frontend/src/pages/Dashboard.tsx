@@ -7,8 +7,10 @@ import {
   type Equipamento,
   type EquipamentoConfig,
   type EquipamentoStatus,
+  type ModeloRele,
   type TunelStatus,
   type Usina,
+  type UsinaConfig,
 } from '../api/client';
 
 interface RelePingState {
@@ -42,6 +44,7 @@ export default function Dashboard() {
   const { logout } = useAuth();
 
   const [usinas, setUsinas] = useState<Usina[]>([]);
+  const [modelos, setModelos] = useState<ModeloRele[]>([]);
   const [tunnelByUsina, setTunnelByUsina] = useState<Record<number, TunelStatus>>({});
   const [equipByUsina, setEquipByUsina] = useState<Record<number, Equipamento[]>>({});
   const [carregando, setCarregando] = useState(true);
@@ -53,9 +56,12 @@ export default function Dashboard() {
 
   const [releByEquip, setReleByEquip] = useState<Record<number, RelePingState>>({});
   const [digirailByEquip, setDigirailByEquip] = useState<Record<number, DigirailTesteState>>({});
+  const [icmpByChave, setIcmpByChave] = useState<Record<string, { loading: boolean; linhas: string[] }>>({});
   const [resultadoByEquip, setResultadoByEquip] = useState<Record<number, AcaoResultado>>({});
   const [pendente, setPendente] = useState<{ equipamentoId: number; acao: AcaoComando; label: string } | null>(null);
   const [editando, setEditando] = useState<Equipamento | null>(null);
+  const [criandoEquipEmUsina, setCriandoEquipEmUsina] = useState<number | null>(null);
+  const [criandoUsina, setCriandoUsina] = useState(false);
 
   async function carregarTudo() {
     setCarregando(true);
@@ -63,6 +69,7 @@ export default function Dashboard() {
     try {
       const listaUsinas = await api.listarUsinas();
       setUsinas(listaUsinas);
+      setModelos(await api.listarModelosRele());
 
       const tunnelEntries = await Promise.all(
         listaUsinas.map(async (u) => [u.id, await api.statusTunel(u.id)] as const),
@@ -110,6 +117,22 @@ export default function Dashboard() {
     }
   }
 
+  function pingIcmp(equipamentoId: number, alvo: 'rele' | 'digirail') {
+    const chave = `${equipamentoId}:${alvo}`;
+    setIcmpByChave((prev) => ({ ...prev, [chave]: { loading: true, linhas: [] } }));
+    api
+      .pingIcmp(equipamentoId, alvo, (linha) => {
+        setIcmpByChave((prev) => ({ ...prev, [chave]: { loading: true, linhas: [...prev[chave].linhas, linha] } }));
+      })
+      .catch((err) => {
+        const msg = err instanceof ApiError ? err.message : 'falha ao executar o ping.';
+        setIcmpByChave((prev) => ({ ...prev, [chave]: { loading: false, linhas: [...(prev[chave]?.linhas ?? []), `erro: ${msg}`] } }));
+      })
+      .finally(() => {
+        setIcmpByChave((prev) => ({ ...prev, [chave]: { ...prev[chave], loading: false } }));
+      });
+  }
+
   function pedirConfirmacao(equipamentoId: number, acao: AcaoComando, equipNome: string) {
     setPendente({ equipamentoId, acao, label: `${ROTULO_ACAO[acao]} ${equipNome}` });
   }
@@ -150,6 +173,26 @@ export default function Dashboard() {
       [atualizado.usina_id]: (prev[atualizado.usina_id] ?? []).map((e) => (e.id === atualizado.id ? atualizado : e)),
     }));
     setEditando(null);
+  }
+
+  async function criarEquipamento(usinaId: number, dados: EquipamentoConfig) {
+    const criado = await api.criarEquipamento(usinaId, dados);
+    setEquipByUsina((prev) => ({ ...prev, [usinaId]: [...(prev[usinaId] ?? []), criado] }));
+    setCriandoEquipEmUsina(null);
+  }
+
+  async function criarUsina(dados: UsinaConfig) {
+    const criada = await api.criarUsina(dados);
+    setUsinas((prev) => [...prev, criada]);
+    setTunnelByUsina((prev) => ({ ...prev, [criada.id]: { wg_interface: criada.wg_interface, up: false, ultimo_handshake_segundos: null, detalhe: 'ainda não consultado' } }));
+    setEquipByUsina((prev) => ({ ...prev, [criada.id]: [] }));
+    setCriandoUsina(false);
+  }
+
+  async function criarModelo(nome: string): Promise<ModeloRele> {
+    const criado = await api.criarModeloRele({ nome, fabricante: 'Pextron' });
+    setModelos((prev) => [...prev, criado]);
+    return criado;
   }
 
   const usinasFiltradas = useMemo(() => {
@@ -220,9 +263,12 @@ export default function Dashboard() {
             placeholder="Buscar usina ou localização"
             style={{ height: 34, width: 260, padding: '0 12px', border: '1px solid #d7dbe3', borderRadius: 6, fontSize: 12.5, color: '#1c2126', background: '#fff' }}
           />
-          <div style={{ marginLeft: 'auto', fontSize: 11.5, color: '#7a8494', fontFamily: "'IBM Plex Mono', monospace" }}>
+          <div style={{ fontSize: 11.5, color: '#7a8494', fontFamily: "'IBM Plex Mono', monospace" }}>
             {carregando ? 'carregando…' : `${usinasFiltradas.length} usina(s)`}
           </div>
+          <button onClick={() => setCriandoUsina(true)} style={{ ...editBtnStyle, marginLeft: 'auto' }}>
+            + Nova usina
+          </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 22, borderBottom: '1px solid #e4e7ec', marginBottom: 14 }}>
@@ -291,6 +337,11 @@ export default function Dashboard() {
 
                 {expandida && (
                   <div style={{ borderTop: '1px solid #eef0f3' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
+                      <button onClick={() => setCriandoEquipEmUsina(usina.id)} style={editBtnStyle}>
+                        + Novo equipamento
+                      </button>
+                    </div>
                     {equipamentos.length === 0 && (
                       <div style={{ padding: '16px 18px', fontSize: 12.5, color: '#7a8494' }}>Nenhum equipamento cadastrado.</div>
                     )}
@@ -319,13 +370,13 @@ export default function Dashboard() {
 
                           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                             <fieldset style={deviceBoxStyle}>
-                              <legend style={legendStyle}>Relé de proteção · {equip.modelo_rele}</legend>
+                              <legend style={legendStyle}>Relé de proteção · {equip.modelo_rele.nome}</legend>
                               <div style={{ fontSize: 11, color: '#7a8494', fontFamily: "'IBM Plex Mono', monospace", marginBottom: 8 }}>
                                 {equip.ip_rele || '—'}:{equip.porta_rele}
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                                 <button onClick={() => pingRele(equip.id)} disabled={rele?.loading} style={pingBtnStyle}>
-                                  {rele?.loading ? 'Consultando…' : 'Ping'}
+                                  {rele?.loading ? 'Consultando…' : 'Status'}
                                 </button>
                                 <span style={{ fontSize: 11.5 }}>
                                   {!rele && <span style={{ color: '#9aa2af' }}>ainda não consultado</span>}
@@ -339,6 +390,10 @@ export default function Dashboard() {
                                 </span>
                               </div>
                               <div style={{ fontSize: 10.5, color: '#b3812f', marginTop: 6 }}>Tensão: não implementado</div>
+                              <PingIcmpBox
+                                estado={icmpByChave[`${equip.id}:rele`]}
+                                onPing={() => pingIcmp(equip.id, 'rele')}
+                              />
                             </fieldset>
 
                             <fieldset style={deviceBoxStyle}>
@@ -360,6 +415,10 @@ export default function Dashboard() {
                                   )}
                                 </span>
                               </div>
+                              <PingIcmpBox
+                                estado={icmpByChave[`${equip.id}:digirail`]}
+                                onPing={() => pingIcmp(equip.id, 'digirail')}
+                              />
                             </fieldset>
                           </div>
 
@@ -426,42 +485,39 @@ export default function Dashboard() {
       {editando && (
         <EditarEquipamentoModal
           equipamento={editando}
+          modelos={modelos}
+          onCriarModelo={criarModelo}
           onCancelar={() => setEditando(null)}
           onSalvar={(dados) => salvarEdicao(editando.id, dados)}
         />
       )}
+
+      {criandoEquipEmUsina !== null && (
+        <EditarEquipamentoModal
+          modelos={modelos}
+          onCriarModelo={criarModelo}
+          onCancelar={() => setCriandoEquipEmUsina(null)}
+          onSalvar={(dados) => criarEquipamento(criandoEquipEmUsina, dados)}
+        />
+      )}
+
+      {criandoUsina && <NovaUsinaModal onCancelar={() => setCriandoUsina(false)} onSalvar={criarUsina} />}
     </div>
   );
 }
 
-function EditarEquipamentoModal({
-  equipamento,
+function NovaUsinaModal({
   onCancelar,
   onSalvar,
 }: {
-  equipamento: Equipamento;
   onCancelar: () => void;
-  onSalvar: (dados: EquipamentoConfig) => Promise<void>;
+  onSalvar: (dados: UsinaConfig) => Promise<void>;
 }) {
-  const [form, setForm] = useState<EquipamentoConfig>({
-    nome: equipamento.nome,
-    tipo: equipamento.tipo,
-    ip_rele: equipamento.ip_rele,
-    porta_rele: equipamento.porta_rele,
-    unit_id_rele: equipamento.unit_id_rele,
-    modelo_rele: equipamento.modelo_rele,
-    registrador_status: equipamento.registrador_status,
-    ip_digirail: equipamento.ip_digirail,
-    porta_digirail: equipamento.porta_digirail,
-    unit_id_digirail: equipamento.unit_id_digirail,
-    addr_ligar: equipamento.addr_ligar,
-    addr_desligar: equipamento.addr_desligar,
-    addr_reset: equipamento.addr_reset,
-  });
+  const [form, setForm] = useState<UsinaConfig>({ nome: '', localizacao: '', wg_interface: '', subnet_cidr: '' });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
-  function campo<K extends keyof EquipamentoConfig>(chave: K, valor: EquipamentoConfig[K]) {
+  function campo<K extends keyof UsinaConfig>(chave: K, valor: UsinaConfig[K]) {
     setForm((prev) => ({ ...prev, [chave]: valor }));
   }
 
@@ -479,10 +535,171 @@ function EditarEquipamentoModal({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(20,22,27,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
-      <div style={{ width: 480, maxHeight: '85vh', overflowY: 'auto', background: '#fff', border: '1px solid #e4e7ec', borderRadius: 8, padding: '22px 24px', boxShadow: '0 20px 48px rgba(20,22,27,0.18)' }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#1c2126', marginBottom: 4 }}>Editar {equipamento.nome}</div>
+      <div style={{ width: 420, background: '#fff', border: '1px solid #e4e7ec', borderRadius: 8, padding: '22px 24px', boxShadow: '0 20px 48px rgba(20,22,27,0.18)' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#1c2126', marginBottom: 4 }}>Nova usina</div>
         <div style={{ fontSize: 12, color: '#7a8494', marginBottom: 18 }}>
-          Use quando trocar um relé/DigiRail em campo — endereço IP, porta e registradores mudam.
+          Depois de criar, adicione o peer correspondente no WireGuard e reinicie o container pra ela ficar acessível.
+        </div>
+
+        <Campo label="Nome">
+          <input value={form.nome} onChange={(e) => campo('nome', e.target.value)} style={inputStyle} />
+        </Campo>
+        <Campo label="Localização">
+          <input value={form.localizacao} onChange={(e) => campo('localizacao', e.target.value)} style={inputStyle} />
+        </Campo>
+        <Campo label="Interface WireGuard">
+          <input value={form.wg_interface} onChange={(e) => campo('wg_interface', e.target.value)} placeholder="wg-nome-da-usina" style={inputStyle} />
+        </Campo>
+        <Campo label="Sub-rede (CIDR)">
+          <input value={form.subnet_cidr} onChange={(e) => campo('subnet_cidr', e.target.value)} placeholder="10.10.5.0/24" style={inputStyle} />
+        </Campo>
+
+        {erro && <div style={{ fontSize: 12, color: '#b3261e', marginTop: 8 }}>{erro}</div>}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+          <button onClick={onCancelar} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: '#eef1f6', border: 'none', color: '#1c2126', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' }}>
+            Cancelar
+          </button>
+          <button onClick={salvar} disabled={salvando} style={{ height: 34, padding: '0 14px', borderRadius: 6, background: '#2f6fe4', border: 'none', color: '#fff', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', opacity: salvando ? 0.7 : 1 }}>
+            {salvando ? 'Salvando…' : 'Salvar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PingIcmpBox({
+  estado,
+  onPing,
+}: {
+  estado?: { loading: boolean; linhas: string[] };
+  onPing: () => void;
+}) {
+  return (
+    <div style={{ marginTop: 8 }}>
+      <button onClick={onPing} disabled={estado?.loading} style={{ ...pingBtnStyle, background: '#1c2126', color: '#fff' }}>
+        {estado?.loading ? 'Pingando…' : 'Ping'}
+      </button>
+      {estado && estado.linhas.length > 0 && (
+        <pre
+          style={{
+            marginTop: 8,
+            padding: '8px 10px',
+            background: '#14171c',
+            color: '#d7dbe3',
+            borderRadius: 5,
+            fontSize: 11,
+            fontFamily: "'IBM Plex Mono', monospace",
+            maxHeight: 140,
+            overflowY: 'auto',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {estado.linhas.join('\n')}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function equipamentoPadrao(modelos: ModeloRele[]): EquipamentoConfig {
+  return {
+    nome: '',
+    tipo: 'disjuntor',
+    ip_rele: '',
+    porta_rele: 502,
+    unit_id_rele: 1,
+    modelo_rele_id: modelos[0]?.id ?? 0,
+    registrador_status: 0,
+    ip_digirail: '',
+    porta_digirail: 502,
+    unit_id_digirail: 1,
+    addr_ligar: 0,
+    addr_desligar: 0,
+    addr_reset: 0,
+  };
+}
+
+const NOVO_MODELO = '__novo__';
+
+function EditarEquipamentoModal({
+  equipamento,
+  modelos,
+  onCriarModelo,
+  onCancelar,
+  onSalvar,
+}: {
+  equipamento?: Equipamento;
+  modelos: ModeloRele[];
+  onCriarModelo: (nome: string) => Promise<ModeloRele>;
+  onCancelar: () => void;
+  onSalvar: (dados: EquipamentoConfig) => Promise<void>;
+}) {
+  const [form, setForm] = useState<EquipamentoConfig>(
+    equipamento
+      ? {
+          nome: equipamento.nome,
+          tipo: equipamento.tipo,
+          ip_rele: equipamento.ip_rele,
+          porta_rele: equipamento.porta_rele,
+          unit_id_rele: equipamento.unit_id_rele,
+          modelo_rele_id: equipamento.modelo_rele_id,
+          registrador_status: equipamento.registrador_status,
+          ip_digirail: equipamento.ip_digirail,
+          porta_digirail: equipamento.porta_digirail,
+          unit_id_digirail: equipamento.unit_id_digirail,
+          addr_ligar: equipamento.addr_ligar,
+          addr_desligar: equipamento.addr_desligar,
+          addr_reset: equipamento.addr_reset,
+        }
+      : equipamentoPadrao(modelos),
+  );
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
+  const [novoModeloNome, setNovoModeloNome] = useState<string | null>(null);
+
+  function campo<K extends keyof EquipamentoConfig>(chave: K, valor: EquipamentoConfig[K]) {
+    setForm((prev) => ({ ...prev, [chave]: valor }));
+  }
+
+  function selecionarModelo(valor: string) {
+    if (valor === NOVO_MODELO) {
+      setNovoModeloNome('');
+      return;
+    }
+    campo('modelo_rele_id', Number(valor));
+  }
+
+  async function confirmarNovoModelo() {
+    if (!novoModeloNome || !novoModeloNome.trim()) return;
+    const criado = await onCriarModelo(novoModeloNome.trim());
+    campo('modelo_rele_id', criado.id);
+    setNovoModeloNome(null);
+  }
+
+  async function salvar() {
+    setSalvando(true);
+    setErro('');
+    try {
+      await onSalvar(form);
+    } catch (err) {
+      setErro(err instanceof ApiError ? err.message : 'Falha ao salvar.');
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(20,22,27,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
+      <div style={{ width: 480, maxHeight: '85vh', overflowY: 'auto', background: '#fff', border: '1px solid #e4e7ec', borderRadius: 8, padding: '22px 24px', boxShadow: '0 20px 48px rgba(20,22,27,0.18)' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#1c2126', marginBottom: 4 }}>
+          {equipamento ? `Editar ${equipamento.nome}` : 'Novo equipamento'}
+        </div>
+        <div style={{ fontSize: 12, color: '#7a8494', marginBottom: 18 }}>
+          {equipamento
+            ? 'Use quando trocar um relé/DigiRail em campo — endereço IP, porta e registradores mudam.'
+            : 'Cadastre o relé de proteção e o DigiRail desse equipamento.'}
         </div>
 
         <Campo label="Nome">
@@ -499,10 +716,32 @@ function EditarEquipamentoModal({
 
         <SecaoTitulo>Relé de proteção</SecaoTitulo>
         <Campo label="Modelo">
-          <select value={form.modelo_rele} onChange={(e) => campo('modelo_rele', e.target.value)} style={inputStyle}>
-            <option value="URP 6100">URP 6100</option>
-            <option value="URP 600X">URP 600X</option>
-          </select>
+          {novoModeloNome === null ? (
+            <select value={form.modelo_rele_id} onChange={(e) => selecionarModelo(e.target.value)} style={inputStyle}>
+              {modelos.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nome}
+                </option>
+              ))}
+              <option value={NOVO_MODELO}>+ novo modelo…</option>
+            </select>
+          ) : (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input
+                autoFocus
+                value={novoModeloNome}
+                onChange={(e) => setNovoModeloNome(e.target.value)}
+                placeholder="Ex: URP 3000"
+                style={inputStyle}
+              />
+              <button type="button" onClick={confirmarNovoModelo} style={{ ...pingBtnStyle, background: '#1c2126', color: '#fff' }}>
+                Adicionar
+              </button>
+              <button type="button" onClick={() => setNovoModeloNome(null)} style={pingBtnStyle}>
+                Cancelar
+              </button>
+            </div>
+          )}
         </Campo>
         <LinhaDupla>
           <Campo label="IP">

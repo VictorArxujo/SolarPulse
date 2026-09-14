@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
 from app.db.models.equipamento import TipoEquipamento
+from app.schemas.modelo_rele import ModeloReleOut
 
 
 class EquipamentoBase(BaseModel):
@@ -10,7 +11,7 @@ class EquipamentoBase(BaseModel):
     ip_rele: str = ""
     porta_rele: int = 502
     unit_id_rele: int = 1
-    modelo_rele: str = "URP 6100"
+    modelo_rele_id: int
     registrador_status: int = 0
 
     ip_digirail: str = ""
@@ -35,6 +36,7 @@ class EquipamentoOut(EquipamentoBase):
     id: int
     usina_id: int
     ativo: bool
+    modelo_rele: ModeloReleOut
 
 
 class EquipamentoStatus(BaseModel):

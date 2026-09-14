@@ -1,4 +1,7 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.v1.deps import get_current_user, require_admin
@@ -9,6 +12,7 @@ from app.db.session import get_db
 from app.schemas.comando import ComandoLogOut, ComandoRequest, ComandoResultado
 from app.schemas.equipamento import DigirailTeste, EquipamentoOut, EquipamentoStatus, EquipamentoUpdate
 from app.services.modbus.client import enviar_comando_equipamento, ler_status_equipamento, testar_digirail
+from app.services.network.ping import ping_stream
 
 router = APIRouter(
     prefix="/equipamentos", tags=["equipamentos"], dependencies=[Depends(get_current_user)]
@@ -72,6 +76,18 @@ async def testar_digirail_equipamento(equipamento_id: int, db: Session = Depends
     ok, detalhe = await testar_digirail(equipamento.ip_digirail, equipamento.porta_digirail)
 
     return DigirailTeste(equipamento_id=equipamento.id, ok=ok, detalhe=detalhe)
+
+
+@router.get("/{equipamento_id}/ping")
+def ping_equipamento(
+    equipamento_id: int, alvo: Literal["rele", "digirail"] = "rele", db: Session = Depends(get_db)
+) -> StreamingResponse:
+    equipamento = _get_equipamento_or_404(equipamento_id, db)
+    ip = equipamento.ip_rele if alvo == "rele" else equipamento.ip_digirail
+    if not ip:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"{alvo} sem IP configurado")
+
+    return StreamingResponse(ping_stream(ip), media_type="text/plain")
 
 
 @router.post("/{equipamento_id}/comando", response_model=ComandoResultado)

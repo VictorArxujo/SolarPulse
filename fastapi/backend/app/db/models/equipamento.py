@@ -23,12 +23,13 @@ class Equipamento(Base):
         Enum(TipoEquipamento), default=TipoEquipamento.religador
     )
 
-    # Relé de proteção (Pextron URP 6100 / URP 600X): só leitura — tensão,
-    # bandeirolas de proteção. Endereço próprio, pode divergir do DigiRail.
+    # Relé de proteção: só leitura — tensão, bandeirolas de proteção.
+    # Endereço próprio, pode divergir do DigiRail.
     ip_rele: Mapped[str] = mapped_column(String(45), default="")
     porta_rele: Mapped[int] = mapped_column(default=502)
     unit_id_rele: Mapped[int] = mapped_column(default=1)
-    modelo_rele: Mapped[str] = mapped_column(String(30), default="URP 6100")
+    modelo_rele_id: Mapped[int] = mapped_column(ForeignKey("modelos_rele.id"))
+    modelo_rele: Mapped["ModeloRele"] = relationship()
     registrador_status: Mapped[int] = mapped_column(default=0)
 
     # DigiRail (gateway Modbus TCP -> paralelismo no relé): é nele que os
