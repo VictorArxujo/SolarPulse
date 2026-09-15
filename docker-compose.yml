@@ -32,6 +32,11 @@ services:
     # sem rede própria: empresta 100% o netns do container "wireguard"
     # (stack vpn-gateway), é assim que alcança os IPs das usinas via túnel
     network_mode: "container:wireguard"
+    # Compartilhar o netns NÃO compartilha capabilities, e a interface netlink
+    # do WireGuard exige NET_ADMIN mesmo só para ler. Sem isto, `wg show`
+    # responde "Operation not permitted" e o status do túnel nunca funciona.
+    cap_add:
+      - NET_ADMIN
     depends_on:
       - db
     env_file:
