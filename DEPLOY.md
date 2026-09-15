@@ -18,7 +18,7 @@ etapa, confirme que funciona, e só então siga para o túnel.
 A VPS vai clonar do GitHub, então o que não estiver lá não existe pra ela.
 
 ```bash
-cd ~/solarpulse/fastapi
+cd ~/solarpulse
 git status --short          # confira o que está pendente
 git add -A
 git commit -m "chave publica do peer + compose da vps"
@@ -52,7 +52,7 @@ Se imprimir a mensagem de boas-vindas, o Docker está de pé.
 
 ```bash
 git clone https://github.com/VictorArxujo/SolarPulse.git
-cd SolarPulse/fastapi
+cd SolarPulse
 ```
 
 **Checkpoint:** `ls` mostra `backend/`, `frontend/`, `docker-compose.vps.yml`.

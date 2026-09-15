@@ -42,12 +42,18 @@ backend fala Modbus diretamente com o equipamento através do túnel VPN.
 ## Estrutura de pastas (monorepo)
 
 ```
-fastapi/
-├── backend/          FastAPI + SQLAlchemy + Alembic (era a raiz do projeto)
-├── frontend/         React + Vite + TS, servido por nginx (proxy /api -> api)
-├── vpn-gateway/       stack independente só com o WireGuard
-└── docker-compose.yml stack "religamento": db + api + frontend
+solarpulse/               (raiz do repositório)
+├── backend/              FastAPI + SQLAlchemy + Alembic
+├── frontend/             React + Vite + TS, servido por nginx (proxy /api -> api)
+├── vpn-gateway/          stack independente só com o WireGuard
+├── docker-compose.yml     alvo final: db + api + frontend, api no netns do túnel
+├── docker-compose.vps.yml VPS etapa 1: sem túnel, só o frontend publica porta
+├── docker-compose.lan.yml bancada local: sem túnel, portas abertas no host
+└── DEPLOY.md              passo a passo do deploy
 ```
+
+Os três composes fixam `name: solarpulse`, então o projeto Docker (e o volume
+`solarpulse_db_data`) não dependem do nome da pasta em que o repo foi clonado.
 
 ## Arquitetura de rede
 

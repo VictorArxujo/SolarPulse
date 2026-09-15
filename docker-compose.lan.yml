@@ -10,6 +10,10 @@
 # Consequência esperada: /usinas/{id}/tunnel/status sempre responde up=false
 # (não há interface wg), e o alcance aos IPs dos equipamentos passa a ser
 # a rota normal do host, não o túnel.
+# Nome fixo do projeto: o padrão seria o nome da pasta, e aí renomear ou
+# reclonar o repo criaria volume novo (banco vazio).
+name: solarpulse
+
 services:
   db:
     image: postgres:17-alpine

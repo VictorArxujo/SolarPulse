@@ -3,6 +3,10 @@
 # network_mode: "container:wireguard"). Suba nesta ordem:
 #   docker compose -f vpn-gateway/docker-compose.yml up -d
 #   docker compose up -d
+# Nome fixo do projeto: o padrão seria o nome da pasta, e aí renomear ou
+# reclonar o repo criaria volume novo (banco vazio).
+name: solarpulse
+
 services:
   db:
     image: postgres:17-alpine
