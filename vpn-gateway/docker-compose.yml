@@ -18,11 +18,15 @@ services:
       app_net:
         aliases:
           - api
-    # a api do backend roda em network_mode: "container:wireguard" (stack
-    # "religamento"), então é aqui que a porta 8000 (uvicorn) precisa ser
-    # publicada para o host
     ports:
-      - "8000:8000"
+      # porta do túnel: é por aqui que os peers das usinas conectam.
+      # Precisa estar liberada no firewall da VPS (e no painel do provedor).
+      - "51820:51820/udp"
+      # A api roda em network_mode: "container:wireguard", então a 8000 do
+      # uvicorn aparece aqui. Presa no loopback de propósito: quem fala com
+      # ela é o nginx do frontend, pela app_net. Aberta, seria a API inteira
+      # exposta na internet.
+      - "127.0.0.1:8000:8000"
     restart: unless-stopped
 
 networks:
