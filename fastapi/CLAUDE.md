@@ -19,10 +19,10 @@ backend fala Modbus diretamente com o equipamento através do túnel VPN.
 ## Modelo de dados
 
 - `Usuario` — login/JWT, tem `role` (admin vs operador — admin cria usinas/equipamentos).
-- `Usina` — `subnet_cidr` (sub-rede da usina alcançada pelo túnel, única). Uma
-  interface WireGuard só atende todas as usinas (`WG_INTERFACE`, padrão `wg0`);
-  cada usina é um **peer** dela, identificado pelo `AllowedIPs` — que é
-  justamente a `subnet_cidr`. Não existe interface por usina.
+- `Usina` — `subnet_cidr` (sub-rede alcançada pelo túnel = `AllowedIPs` do peer)
+  e `wg_public_key` (chave pública do peer, opcional e única). Uma interface
+  WireGuard só atende todas as usinas (`WG_INTERFACE`, padrão `wg0`); cada usina
+  é um **peer** dela. Não existe interface por usina.
 - `Equipamento` — pertence a uma usina; `ip`/`porta` (endereço Modbus dentro do
   túnel), `coil_comando` (religar/abrir), `registrador_status` (leitura de estado).
 - `ComandoLog` — auditoria: usuário, ação, sucesso/falha, timestamp.
@@ -30,9 +30,10 @@ backend fala Modbus diretamente com o equipamento através do túnel VPN.
 ## Fluxo principal
 
 1. Login (`/auth/login`) → JWT com `sub` (email) + `role`.
-2. `GET /usinas/{id}/tunnel/status` → acha o peer cujo `AllowedIPs` cobre a
-   `subnet_cidr` da usina (`wg show <iface> allowed-ips`) e lê o handshake dele
-   (`wg show <iface> latest-handshakes`); < 180s = túnel "up".
+2. `GET /usinas/{id}/tunnel/status` → localiza o peer pela `wg_public_key` da
+   usina; sem chave, cai no peer cujo `AllowedIPs` cobre a `subnet_cidr`
+   (`wg show <iface> allowed-ips`). Lê o handshake dele em
+   `wg show <iface> latest-handshakes`; < 180s = túnel "up".
 3. `GET /equipamentos/{id}/status` → `read_coils` no `registrador_status`.
 4. `POST /equipamentos/{id}/comando` → `write_coil` no `coil_comando`
    (`True`=religar, `False`=abrir) → resultado logado em `ComandoLog`.

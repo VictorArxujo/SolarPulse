@@ -52,11 +52,14 @@ export interface UsinaConfig {
   localizacao: string;
   /** Sub-rede da usina; é o AllowedIPs do peer dela no túnel compartilhado. */
   subnet_cidr: string;
+  /** Chave pública do peer. Vazio = o peer é localizado pelo AllowedIPs. */
+  wg_public_key: string;
 }
 
-export interface Usina extends UsinaConfig {
+export interface Usina extends Omit<UsinaConfig, 'wg_public_key'> {
   id: number;
   ativo: boolean;
+  wg_public_key: string | null;
 }
 
 export interface TunelStatus {

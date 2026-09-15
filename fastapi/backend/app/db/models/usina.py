@@ -14,7 +14,12 @@ class Usina(Base):
     # Sub-rede local da usina alcançada pelo túnel, ex: "10.10.1.0/24".
     # É também o AllowedIPs do peer desta usina, e é por ela que o status do
     # túnel encontra o peer certo dentro da interface compartilhada.
-    subnet_cidr: Mapped[str] = mapped_column(String(50), unique=True)
+    subnet_cidr: Mapped[str] = mapped_column(String(50))
+
+    # Chave pública do peer desta usina na interface compartilhada. É a
+    # identidade real do peer — o `wg` indexa tudo por ela. Opcional: enquanto
+    # estiver vazia, o status do túnel cai no casamento por AllowedIPs.
+    wg_public_key: Mapped[str | None] = mapped_column(String(44), unique=True, default=None)
 
     ativo: Mapped[bool] = mapped_column(default=True)
 

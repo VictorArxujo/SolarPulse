@@ -454,7 +454,8 @@ export default function Dashboard() {
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600 }}>{usinaAberta.nome}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2, fontFamily: "'IBM Plex Mono', monospace" }}>
-                  {equipamentosAbertos.length} equipamento(s) · {usinaAberta.subnet_cidr || 'sem sub-rede'}
+                  {equipamentosAbertos.length} equipamento(s) · {usinaAberta.subnet_cidr || 'sem sub-rede'} ·{' '}
+                  {usinaAberta.wg_public_key ? 'peer por chave pública' : 'peer pela sub-rede'}
                 </div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
@@ -634,7 +635,7 @@ function NovaUsinaModal({
   onCancelar: () => void;
   onSalvar: (dados: UsinaConfig) => Promise<void>;
 }) {
-  const [form, setForm] = useState<UsinaConfig>({ nome: '', localizacao: '', subnet_cidr: '' });
+  const [form, setForm] = useState<UsinaConfig>({ nome: '', localizacao: '', subnet_cidr: '', wg_public_key: '' });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -668,10 +669,22 @@ function NovaUsinaModal({
         <Campo label="Localização">
           <input value={form.localizacao} onChange={(e) => campo('localizacao', e.target.value)} style={inputStyle} />
         </Campo>
+        <Campo label="Chave pública do peer (opcional)">
+          <input
+            value={form.wg_public_key}
+            onChange={(e) => campo('wg_public_key', e.target.value)}
+            placeholder="base64 de 44 caracteres"
+            style={inputStyle}
+          />
+          <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 4 }}>
+            Identifica o peer direto. Em branco, o túnel é localizado pela sub-rede.
+          </div>
+        </Campo>
+
         <Campo label="Sub-rede (CIDR)">
           <input value={form.subnet_cidr} onChange={(e) => campo('subnet_cidr', e.target.value)} placeholder="10.10.5.0/24" style={inputStyle} />
           <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 4 }}>
-            É o AllowedIPs do peer desta usina no túnel — precisa ser única.
+            É o AllowedIPs do peer desta usina no túnel.
           </div>
         </Campo>
 
