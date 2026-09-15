@@ -198,10 +198,17 @@ comando com confirmação e auditoria, importação do `app_metrion`.
 
 - `backend/.env` e `vpn-gateway/wireguard/config/` estão no `.gitignore` —
   segredo de JWT e chaves privadas do túnel nunca vão para o repositório.
-- A `api` roda com `CAP_NET_ADMIN`. É o necessário para ler o estado do túnel,
-  mas dá àquele container poder de reconfigurar a rede do namespace que ele
-  divide com a VPN. A alternativa sem capability seria o container `wireguard`
-  publicar a saída de `wg show` num volume compartilhado.
+- **A `api` roda com `CAP_NET_ADMIN`** — decisão consciente, com este custo:
+  a capability é o que permite ler o estado do túnel, mas o WireGuard expõe
+  estado e segredo pela mesma operação de netlink, então quem a tem também
+  **lê a chave privada do túnel** (`wg show wg0 private-key`). Se a api for
+  comprometida, o atacante não ganha acesso à usina (isso o netns compartilhado
+  já dava), mas ganha a chave — e isso sobrevive a reinstalar o servidor.
+  A alternativa, para quando isto virar produção: um sidecar com a capability
+  no mesmo netns escrevendo `wg show wg0 allowed-ips` e `latest-handshakes` em
+  um volume, e a api lendo os arquivos sem capability nenhuma. Os dois arquivos
+  não contêm segredo (`wg show all dump` conteria — a primeira linha traz a
+  chave privada).
 - **Uma máquina com túnel ativo para usina real comanda disjuntor de verdade.**
   Não restaure um dump com as usinas de produção num ambiente de teste que tenha
   esse túnel ligado: basta um clique na tela para atuar em campo.
