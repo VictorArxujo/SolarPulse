@@ -48,8 +48,12 @@ services:
     build:
       context: ./frontend
     container_name: frontend
+    # porta não-padrão de propósito: reduz o volume de scanner/bot genérico
+    # que só testa exploits conhecidos na 80 — não impede um ataque
+    # direcionado (varredura de porta acha isso em segundos), mas não custa
+    # nada manter. Precisa bater com a regra liberada na Security List da VPS.
     ports:
-      - "80:80"
+      - "28080:80"
     networks:
       - app_net
     depends_on:

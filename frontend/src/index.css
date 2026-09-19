@@ -1,42 +1,116 @@
 /* Paleta única do sistema. Tudo que é cor vive aqui — os componentes usam
-   var(--token), nunca hex solto. Trocar o tema = mexer só neste bloco. */
+   var(--token), nunca hex solto. Escuro é o padrão; claro entra por
+   [data-theme="light"] (alternado pelo botão da barra lateral) ou, sem
+   escolha salva, pelo prefers-color-scheme do sistema. */
 :root {
   color-scheme: dark;
 
-  --bg: #0d1017;          /* fundo da página */
-  --surface: #161a23;     /* cartões, modais, cabeçalho */
-  --surface-2: #1b212c;   /* preenchimento de botão secundário */
-  --surface-3: #10131a;   /* poços: inputs e saída do ping */
-  --grid: #1a1f2b;        /* grade decorativa do login */
+  --bg: #0b0e14;          /* fundo da página */
+  --surface: #131720;     /* cartões, modais, cabeçalho */
+  --surface-2: #1a1f2a;   /* preenchimento de botão secundário */
+  --surface-3: #0f131a;   /* poços: inputs e saída do ping */
+  --grid: #1c2230;        /* grade decorativa do login */
 
-  --border: #262c3a;
-  --border-strong: #2f3646;
-  --divider: #1e232e;
+  --border: #242b3a;
+  --border-strong: #2e3648;
+  --divider: #1d2330;
 
-  --text: #e7e9ee;
-  --text-2: #a2aab9;
-  --text-3: #6c7585;
+  --text: #e6e9ef;
+  --text-2: #99a2b4;
+  --text-3: #636e82;
 
-  --accent: #4c8dff;
-  --accent-soft: rgba(76, 141, 255, 0.12);
-  --accent-border: rgba(76, 141, 255, 0.32);
+  --accent: #4d7fe0;
+  --accent-soft: rgba(77, 127, 224, 0.14);
+  --accent-border: rgba(77, 127, 224, 0.34);
 
-  --ok: #2ee6a0;
-  --ok-soft: rgba(46, 230, 160, 0.12);
-  --danger: #ff6b6b;
-  --danger-soft: rgba(255, 107, 107, 0.12);
-  --danger-border: rgba(255, 107, 107, 0.32);
-  --warn: #e0a355;
-  --warn-soft: rgba(224, 163, 85, 0.12);
+  --ok: #33b784;
+  --ok-soft: rgba(51, 183, 132, 0.14);
+  --danger: #e5555f;
+  --danger-soft: rgba(229, 85, 95, 0.13);
+  --danger-border: rgba(229, 85, 95, 0.32);
+  --warn: #d99a3f;
+  --warn-soft: rgba(217, 154, 63, 0.14);
 
-  /* fundos chapados de botão: texto branco por cima, então mantêm saturação */
-  --btn-ok: #1b8755;
-  --btn-danger: #cf4843;
-  --btn-accent: #2f6fe4;
+  /* fundos chapados de botão: texto branco por cima, então mantêm saturação
+     — de propósito iguais nos dois temas, pra Ligar/Desligar/Reset serem
+     reconhecidos pela mesma cor não importa o tema da tela. */
+  --btn-ok: #1c8c5c;
+  --btn-danger: #c8434c;
+  --btn-accent: #3568d4;
   --btn-text: #ffffff;
 
-  --overlay: rgba(5, 7, 11, 0.66);
+  --overlay: rgba(6, 8, 12, 0.66);
   --shadow: 0 20px 48px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --surface-3: #f6f7f9;
+  --grid: #e6e8ed;
+
+  --border: #e1e4ea;
+  --border-strong: #ccd1db;
+  --divider: #ebedf1;
+
+  --text: #161a22;
+  --text-2: #5b6472;
+  --text-3: #848da0;
+
+  --accent: #3768d9;
+  --accent-soft: rgba(55, 104, 217, 0.09);
+  --accent-border: rgba(55, 104, 217, 0.3);
+
+  --ok: #1f9468;
+  --ok-soft: rgba(31, 148, 104, 0.1);
+  --danger: #d13b46;
+  --danger-soft: rgba(209, 59, 70, 0.09);
+  --danger-border: rgba(209, 59, 70, 0.3);
+  --warn: #b3721f;
+  --warn-soft: rgba(179, 114, 31, 0.1);
+
+  --overlay: rgba(22, 26, 34, 0.32);
+  --shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+}
+
+/* Sem escolha salva: segue o SO. O toggle grava em localStorage e passa a
+   valer via [data-theme], sobrepondo isto. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #eef0f4;
+    --surface-3: #f6f7f9;
+    --grid: #e6e8ed;
+
+    --border: #e1e4ea;
+    --border-strong: #ccd1db;
+    --divider: #ebedf1;
+
+    --text: #161a22;
+    --text-2: #5b6472;
+    --text-3: #848da0;
+
+    --accent: #3768d9;
+    --accent-soft: rgba(55, 104, 217, 0.09);
+    --accent-border: rgba(55, 104, 217, 0.3);
+
+    --ok: #1f9468;
+    --ok-soft: rgba(31, 148, 104, 0.1);
+    --danger: #d13b46;
+    --danger-soft: rgba(209, 59, 70, 0.09);
+    --danger-border: rgba(209, 59, 70, 0.3);
+    --warn: #b3721f;
+    --warn-soft: rgba(179, 114, 31, 0.1);
+
+    --overlay: rgba(22, 26, 34, 0.32);
+    --shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+  }
 }
 
 * {
@@ -121,6 +195,28 @@ textarea {
   transform: translateX(3px);
 }
 
+/* anel de prontidão — anima uma vez do zero até o valor real ao montar */
+.anel-progresso {
+  transition: stroke-dashoffset 1s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.3s ease;
+}
+
+/* ---------------- navegação lateral ---------------- */
+.nav-item {
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* ---------------- log de comandos ---------------- */
+.log-row {
+  transition: background 0.1s ease;
+}
+.log-row:hover {
+  background: var(--surface-2);
+}
+
 /* ---------------- medidor ---------------- */
 /* Trilho = passo claro do mesmo tom do preenchimento, para o estado
    ser legível ao longo da barra inteira, não só na parte preenchida. */
@@ -150,7 +246,8 @@ textarea {
   .card-usina,
   .card-seta,
   .medidor > i,
-  .led-on {
+  .led-on,
+  .anel-progresso {
     transition: none;
     animation: none;
   }

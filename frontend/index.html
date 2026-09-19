@@ -8,6 +8,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <title>Religamento Remoto</title>
+    <script>
+      // Aplica o tema salvo antes do primeiro paint — evita o flash do tema
+      // errado que apareceria se isso rodasse só depois do React montar.
+      (function () {
+        try {
+          var tema = localStorage.getItem('tema');
+          if (tema === 'light' || tema === 'dark') {
+            document.documentElement.setAttribute('data-theme', tema);
+          }
+        } catch (e) {
+          // localStorage indisponível (modo privado) — cai no prefers-color-scheme
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

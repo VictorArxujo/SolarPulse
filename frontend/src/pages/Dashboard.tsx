@@ -12,6 +12,11 @@ import {
   type Usina,
   type UsinaConfig,
 } from '../api/client';
+import AnelProntidao from '../components/AnelProntidao';
+import PainelLogComandos from '../components/PainelLogComandos';
+import Sidebar, { type Visao } from '../components/Sidebar';
+import { useTema } from '../hooks/useTema';
+import { ROTULO_ACAO } from '../lib/acao';
 
 interface RelePingState {
   loading: boolean;
@@ -38,8 +43,6 @@ function agora() {
   return new Date().toLocaleTimeString('pt-BR', { hour12: false });
 }
 
-const ROTULO_ACAO: Record<AcaoComando, string> = { religar: 'Ligar', abrir: 'Desligar', reset: 'Reset' };
-
 // Símbolo de disjuntor em estilo diagrama unifilar: terminais fixos, lâmina
 // reta quando fechado (circuito contínuo) e afastada quando aberto — o
 // mesmo traço que aparece nas telas de sala de controle e nos catálogos
@@ -61,6 +64,10 @@ function GlifoDisjuntor({ fechado }: { fechado: boolean | null }) {
 
 export default function Dashboard() {
   const { logout } = useAuth();
+
+  const [visao, setVisao] = useState<Visao>('frota');
+  const [logGatilho, setLogGatilho] = useState(0);
+  const { tema, alternar: alternarTema } = useTema();
 
   const [horaAtual, setHoraAtual] = useState(() => agora());
   useEffect(() => {
@@ -84,6 +91,8 @@ export default function Dashboard() {
   const [icmpByChave, setIcmpByChave] = useState<Record<string, { loading: boolean; linhas: string[] }>>({});
   const [resultadoByEquip, setResultadoByEquip] = useState<Record<number, AcaoResultado>>({});
   const [pendente, setPendente] = useState<{ equipamentoId: number; acao: AcaoComando; label: string } | null>(null);
+  const [verificandoFrota, setVerificandoFrota] = useState(false);
+  const [frotaVerificadaAs, setFrotaVerificadaAs] = useState<string | null>(null);
   const [editando, setEditando] = useState<Equipamento | null>(null);
   const [criandoEquipEmUsina, setCriandoEquipEmUsina] = useState<number | null>(null);
   const [criandoUsina, setCriandoUsina] = useState(false);
@@ -142,6 +151,49 @@ export default function Dashboard() {
     }
   }
 
+  // "Operável" no cadastro só significa "tem endereço de DigiRail e está
+  // ativo" — isso não prova que o DigiRail responde agora. Esta função é a
+  // única forma de saber de verdade: testa o DigiRail de cada equipamento em
+  // paralelo, um por um (o mesmo teste que o botão "Testar" já faz), e só
+  // então a prontidão da frota passa a refletir status real em vez de
+  // cadastro. Não roda sozinha — dispara tráfego Modbus de verdade pras
+  // usinas, inclusive as em produção.
+  async function verificarFrota() {
+    const alvo = todosEquipamentos.filter((e) => e.ativo && e.ip_digirail);
+    if (alvo.length === 0) {
+      setFrotaVerificadaAs(agora());
+      return;
+    }
+    setVerificandoFrota(true);
+    setDigirailByEquip((prev) => {
+      const next = { ...prev };
+      for (const e of alvo) next[e.id] = { loading: true };
+      return next;
+    });
+    const resultados = await Promise.allSettled(alvo.map((e) => api.testarDigirail(e.id)));
+    setDigirailByEquip((prev) => {
+      const next = { ...prev };
+      resultados.forEach((resultado, i) => {
+        const equipId = alvo[i].id;
+        next[equipId] =
+          resultado.status === 'fulfilled'
+            ? { loading: false, ok: resultado.value.ok, detalhe: resultado.value.detalhe, verificadoAs: agora() }
+            : { loading: false, ok: false, detalhe: 'falha de comunicação com a API.', verificadoAs: agora() };
+      });
+      return next;
+    });
+    setFrotaVerificadaAs(agora());
+    setVerificandoFrota(false);
+  }
+
+  // Antes da primeira verificação, "pronto" é só o que está cadastrado
+  // (ativo + endereço de DigiRail); depois, passa a ser quem respondeu.
+  function contarOperaveis(equipamentos: Equipamento[]) {
+    const configurados = equipamentos.filter((e) => e.ativo && e.ip_digirail);
+    if (!frotaVerificadaAs) return configurados.length;
+    return configurados.filter((e) => digirailByEquip[e.id]?.ok).length;
+  }
+
   function pingIcmp(equipamentoId: number, alvo: 'rele' | 'digirail') {
     const chave = `${equipamentoId}:${alvo}`;
     setIcmpByChave((prev) => ({ ...prev, [chave]: { loading: true, linhas: [] } }));
@@ -188,6 +240,8 @@ export default function Dashboard() {
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'falha de comunicação com a API.';
       setResultadoByEquip((prev) => ({ ...prev, [equipamentoId]: { sucesso: false, texto: `${label}: falha — ${msg}` } }));
+    } finally {
+      setLogGatilho((n) => n + 1);
     }
   }
 
@@ -239,17 +293,32 @@ export default function Dashboard() {
   const usinaAberta = usinas.find((u) => u.id === expandidaId) ?? null;
   const equipamentosAbertos = usinaAberta ? equipByUsina[usinaAberta.id] ?? [] : [];
 
-  // Um equipamento só é operável se estiver ativo E tiver DigiRail — sem
-  // DigiRail não existe caminho de escrita, então ele não conta como pronto.
   const todosEquipamentos = usinas.flatMap((u) => equipByUsina[u.id] ?? []);
-  const operaveisTotal = todosEquipamentos.filter((e) => e.ativo && e.ip_digirail).length;
+  const operaveisTotal = contarOperaveis(todosEquipamentos);
 
   const resumo = [
     { rotulo: 'Usinas', valor: String(usinas.length) },
     { rotulo: 'Túneis online', valor: String(onlineCount), sufixo: `de ${usinas.length}` },
     { rotulo: 'Equipamentos', valor: String(todosEquipamentos.length) },
-    { rotulo: 'Operáveis', valor: String(operaveisTotal), sufixo: `de ${todosEquipamentos.length}` },
   ];
+
+  const prontidaoGeral = todosEquipamentos.length ? operaveisTotal / todosEquipamentos.length : 0;
+  const tomGeral =
+    todosEquipamentos.length === 0
+      ? 'var(--text-3)'
+      : prontidaoGeral === 1
+        ? 'var(--ok)'
+        : prontidaoGeral > 0
+          ? 'var(--warn)'
+          : 'var(--danger)';
+  const trilhoGeral =
+    todosEquipamentos.length === 0
+      ? 'var(--divider)'
+      : prontidaoGeral === 1
+        ? 'var(--ok-soft)'
+        : prontidaoGeral > 0
+          ? 'var(--warn-soft)'
+          : 'var(--danger-soft)';
 
   const tabs: { key: Filtro; label: string }[] = [
     { key: 'all', label: `Todas (${usinas.length})` },
@@ -258,7 +327,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', width: '100%', background: 'var(--bg)', color: 'var(--text)', position: 'relative' }}>
+    <div style={{ minHeight: '100vh', width: '100%', background: 'var(--bg)', color: 'var(--text)', display: 'flex' }}>
       <svg width="100%" height="100%" style={{ position: 'fixed', inset: 0, opacity: 0.06, pointerEvents: 'none' }} preserveAspectRatio="none">
         <defs>
           <pattern id="grid-dash" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -268,47 +337,20 @@ export default function Dashboard() {
         <rect width="100%" height="100%" fill="url(#grid-dash)" />
       </svg>
 
-      <div
-        style={{
-          height: 56,
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 24px',
-          position: 'sticky',
-          top: 0,
-          background: 'var(--surface)',
-          zIndex: 5,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 6, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13 2 L4 14 h6 l-1 8 9-12 h-6 z" />
-            </svg>
-          </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>Religamento Remoto</div>
-            <div style={{ fontSize: 10.5, color: 'var(--text-2)', marginTop: 1 }}>Supervisão e comando via Modbus TCP</div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-3)', fontFamily: "'IBM Plex Mono', monospace" }}>{horaAtual}</span>
-          <button onClick={logout} style={{ fontSize: 12, color: 'var(--text-2)', background: 'none', border: 'none', cursor: 'pointer' }}>
-            Sair
-          </button>
-        </div>
-      </div>
+      <Sidebar visao={visao} onVisao={setVisao} horaAtual={horaAtual} onLogout={logout} tema={tema} onAlternarTema={alternarTema} />
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 24px 60px', position: 'relative' }}>
+      <div style={{ flex: 1, minWidth: 0, maxWidth: 1240, margin: '0 auto', padding: '24px 28px 60px', position: 'relative' }}>
         {erro && (
           <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--danger)', background: 'var(--danger-soft)', border: '1px solid var(--danger-border)', borderRadius: 6, padding: '10px 14px' }}>
             {erro}
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        {visao === 'log' && <PainelLogComandos usinas={usinas} gatilhoAtualizacao={logGatilho} />}
+
+        {visao === 'frota' && (
+        <>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
@@ -321,6 +363,53 @@ export default function Dashboard() {
           <button onClick={() => setCriandoUsina(true)} style={{ ...editBtnStyle, marginLeft: 'auto' }}>
             + Nova usina
           </button>
+        </div>
+
+        {/* Hero: um único elemento com peso visual de verdade — o anel de
+            prontidão da frota — ladeado pelos números de apoio, em vez de
+            quatro números idênticos competindo pela mesma atenção. */}
+        <div style={{ display: 'flex', gap: 14, marginBottom: 20, flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 20,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '18px 26px 18px 22px',
+            }}
+          >
+            <AnelProntidao valor={prontidaoGeral} cor={tomGeral} trilho={trilhoGeral} tamanho={92} espessura={8}>
+              <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', fontFamily: "'IBM Plex Mono', monospace" }}>
+                {Math.round(prontidaoGeral * 100)}%
+              </span>
+            </AnelProntidao>
+            <div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Prontidão da frota</div>
+              <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 600, marginTop: 4 }}>
+                {operaveisTotal} de {todosEquipamentos.length} {frotaVerificadaAs ? 'respondendo agora' : 'com DigiRail cadastrado'}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+                {frotaVerificadaAs ? `verificado às ${frotaVerificadaAs}` : 'cadastro, não testado — clique em verificar'}
+              </div>
+              <button onClick={verificarFrota} disabled={verificandoFrota || todosEquipamentos.length === 0} style={{ ...editBtnStyle, marginTop: 8 }}>
+                {verificandoFrota ? `Testando ${todosEquipamentos.filter((e) => e.ativo && e.ip_digirail).length} DigiRail…` : 'Verificar frota'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, minWidth: 240, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'var(--divider)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+            {resumo.map((item) => (
+              <div key={item.rotulo} style={{ background: 'var(--surface)', padding: '14px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{item.rotulo}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
+                  <span style={{ fontSize: 25, fontWeight: 600, lineHeight: 1 }}>{item.valor}</span>
+                  {item.sufixo && <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>{item.sufixo}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 22, borderBottom: '1px solid var(--border)', marginBottom: 14 }}>
@@ -348,38 +437,11 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Faixa de indicadores da frota. Os valores ficam em tinta neutra de
-            propósito — quem carrega estado é o cartão, não o número. */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-            gap: 1,
-            background: 'var(--divider)',
-            border: '1px solid var(--border)',
-            borderRadius: 10,
-            overflow: 'hidden',
-            marginBottom: 16,
-          }}
-        >
-          {resumo.map((item) => (
-            <div key={item.rotulo} style={{ background: 'var(--surface)', padding: '13px 16px' }}>
-              <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
-                {item.rotulo}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
-                <span style={{ fontSize: 25, fontWeight: 600, lineHeight: 1 }}>{item.valor}</span>
-                {item.sufixo && <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>{item.sufixo}</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: 14, alignItems: 'start' }}>
           {usinasFiltradas.map((usina) => {
             const tunnel = tunnelByUsina[usina.id];
             const equipamentos = equipByUsina[usina.id] ?? [];
-            const operaveis = equipamentos.filter((e) => e.ativo && e.ip_digirail).length;
+            const operaveis = contarOperaveis(equipamentos);
             const prontidao = equipamentos.length ? operaveis / equipamentos.length : 0;
             const selecionada = expandidaId === usina.id;
 
@@ -466,7 +528,7 @@ export default function Dashboard() {
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 10.5, color: 'var(--text-3)', marginBottom: 5 }}>
-                      <span>Prontidão para comando</span>
+                      <span>{frotaVerificadaAs ? 'Prontidão verificada' : 'Prontidão (cadastro, não testado)'}</span>
                       <span style={{ color: tom, fontWeight: 600 }}>{Math.round(prontidao * 100)}%</span>
                     </div>
                     <div className="medidor" style={{ background: trilho }}>
@@ -629,6 +691,8 @@ export default function Dashboard() {
             );
           })}
           </div>
+        )}
+        </>
         )}
       </div>
 

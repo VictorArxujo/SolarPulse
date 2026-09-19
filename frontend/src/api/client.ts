@@ -127,6 +127,20 @@ export interface ComandoResultado {
   detalhe: string;
 }
 
+export interface ComandoLog {
+  id: number;
+  usuario_id: number;
+  usuario_nome: string;
+  equipamento_id: number;
+  equipamento_nome: string;
+  usina_id: number;
+  usina_nome: string;
+  acao: AcaoComando;
+  sucesso: boolean;
+  detalhe: string;
+  criado_em: string;
+}
+
 export const api = {
   async login(email: string, senha: string): Promise<string> {
     const body = new URLSearchParams({ username: email, password: senha });
@@ -187,6 +201,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ acao }),
     }),
+  listarComandos: (params: { usinaId?: number; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.usinaId != null) query.set('usina_id', String(params.usinaId));
+    query.set('limit', String(params.limit ?? 100));
+    return request<ComandoLog[]>(`/comandos?${query.toString()}`);
+  },
 
   async pingIcmp(
     equipamentoId: number,

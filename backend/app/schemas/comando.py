@@ -26,3 +26,13 @@ class ComandoLogOut(BaseModel):
     sucesso: bool
     detalhe: str
     criado_em: datetime
+
+
+class ComandoLogDetalhado(ComandoLogOut):
+    """Log de comando com os nomes já resolvidos — poupa o painel de log de
+    fazer um lookup por equipamento/usina/usuário a mais para cada linha."""
+
+    usuario_nome: str
+    equipamento_nome: str
+    usina_id: int
+    usina_nome: str
