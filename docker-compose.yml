@@ -17,10 +17,11 @@ services:
       - POSTGRES_DB=religamento
     volumes:
       - db_data:/var/lib/postgresql/data
-    # 5433 no host pra não colidir com um Postgres local na 5432;
-    # útil pra rodar alembic fora do container durante o desenvolvimento
-    ports:
-      - "5433:5432"
+    # sem "ports": o banco não fica exposto na internet — o "ufw" não filtra
+    # portas publicadas pelo Docker (ele injeta regras de iptables que passam
+    # na frente), então publicar aqui seria expor Postgres com senha padrão
+    # pra internet inteira. Pra rodar alembic/psql à mão, use
+    # "docker compose exec db ..." em vez de conectar do host.
     networks:
       - app_net
     restart: unless-stopped
