@@ -50,9 +50,9 @@ services:
     container_name: frontend
     networks:
       - app_net
-    # 8080 está ocupada por outro projeto na sua máquina
+    # 8080 e 8081 estão ocupadas por outros projetos na sua máquina
     ports:
-      - "8081:80"
+      - "8082:80"
     depends_on:
       - api
     restart: unless-stopped

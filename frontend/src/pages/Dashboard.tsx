@@ -40,8 +40,33 @@ function agora() {
 
 const ROTULO_ACAO: Record<AcaoComando, string> = { religar: 'Ligar', abrir: 'Desligar', reset: 'Reset' };
 
+// Símbolo de disjuntor em estilo diagrama unifilar: terminais fixos, lâmina
+// reta quando fechado (circuito contínuo) e afastada quando aberto — o
+// mesmo traço que aparece nas telas de sala de controle e nos catálogos
+// dos próprios relés Pextron, em vez de um texto colorido genérico.
+function GlifoDisjuntor({ fechado }: { fechado: boolean | null }) {
+  const cor = fechado == null ? 'var(--text-3)' : fechado ? 'var(--ok)' : 'var(--danger)';
+  return (
+    <svg width="22" height="14" viewBox="0 0 22 14" fill="none" style={{ flexShrink: 0 }} aria-hidden="true">
+      <circle cx="3" cy="7" r="2" fill={cor} />
+      <circle cx="19" cy="7" r="2" fill={cor} />
+      {fechado === false ? (
+        <line x1="5" y1="7" x2="14" y2="2" stroke={cor} strokeWidth="1.6" strokeLinecap="round" />
+      ) : (
+        <line x1="5" y1="7" x2="17" y2="7" stroke={cor} strokeWidth="1.6" strokeLinecap="round" />
+      )}
+    </svg>
+  );
+}
+
 export default function Dashboard() {
   const { logout } = useAuth();
+
+  const [horaAtual, setHoraAtual] = useState(() => agora());
+  useEffect(() => {
+    const id = setInterval(() => setHoraAtual(agora()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const [usinas, setUsinas] = useState<Usina[]>([]);
   const [modelos, setModelos] = useState<ModeloRele[]>([]);
@@ -233,7 +258,16 @@ export default function Dashboard() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', width: '100%', background: 'var(--bg)', color: 'var(--text)' }}>
+    <div style={{ minHeight: '100vh', width: '100%', background: 'var(--bg)', color: 'var(--text)', position: 'relative' }}>
+      <svg width="100%" height="100%" style={{ position: 'fixed', inset: 0, opacity: 0.06, pointerEvents: 'none' }} preserveAspectRatio="none">
+        <defs>
+          <pattern id="grid-dash" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--grid)" strokeWidth="1" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid-dash)" />
+      </svg>
+
       <div
         style={{
           height: 56,
@@ -259,12 +293,15 @@ export default function Dashboard() {
             <div style={{ fontSize: 10.5, color: 'var(--text-2)', marginTop: 1 }}>Supervisão e comando via Modbus TCP</div>
           </div>
         </div>
-        <button onClick={logout} style={{ fontSize: 12, color: 'var(--text-2)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          Sair
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-3)', fontFamily: "'IBM Plex Mono', monospace" }}>{horaAtual}</span>
+          <button onClick={logout} style={{ fontSize: 12, color: 'var(--text-2)', background: 'none', border: 'none', cursor: 'pointer' }}>
+            Sair
+          </button>
+        </div>
       </div>
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 24px 60px' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 24px 60px', position: 'relative' }}>
         {erro && (
           <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--danger)', background: 'var(--danger-soft)', border: '1px solid var(--danger-border)', borderRadius: 6, padding: '10px 14px' }}>
             {erro}
@@ -327,7 +364,7 @@ export default function Dashboard() {
         >
           {resumo.map((item) => (
             <div key={item.rotulo} style={{ background: 'var(--surface)', padding: '13px 16px' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
                 {item.rotulo}
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
@@ -382,10 +419,14 @@ export default function Dashboard() {
                 aria-pressed={selecionada}
                 onClick={() => setExpandidaId(selecionada ? null : usina.id)}
               >
-                {/* faixa de estado do túnel */}
-                <span style={{ height: 3, width: '100%', background: tunnel?.up ? 'var(--ok)' : 'var(--danger)' }} />
+                {/* trilho de estado do túnel — lê como a coluna de LED de um
+                    painel de relé de campo, não uma faixa decorativa */}
+                <span
+                  className={`rail${tunnel?.up ? ' led-on' : ''}`}
+                  style={{ background: tunnel?.up ? 'var(--ok)' : 'var(--danger)', boxShadow: tunnel?.up ? '0 0 8px var(--ok)' : 'none' }}
+                />
 
-                <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ flex: 1, minWidth: 0, padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                     <span style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -400,9 +441,12 @@ export default function Dashboard() {
                         {usina.localizacao || 'Localização não informada'}
                       </div>
                     </div>
-                    {/* estado nunca sai só na cor: ponto + rótulo */}
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 999, flexShrink: 0, background: tunnel?.up ? 'var(--ok-soft)' : 'var(--danger-soft)' }}>
-                      <span style={{ width: 5, height: 5, borderRadius: 999, background: tunnel?.up ? 'var(--ok)' : 'var(--danger)' }} />
+                    {/* estado nunca sai só na cor: LED + rótulo */}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 7px', borderRadius: 4, flexShrink: 0, background: tunnel?.up ? 'var(--ok-soft)' : 'var(--danger-soft)' }}>
+                      <span
+                        className={tunnel?.up ? 'led-on' : undefined}
+                        style={{ width: 5, height: 5, borderRadius: 999, background: tunnel?.up ? 'var(--ok)' : 'var(--danger)', boxShadow: tunnel?.up ? '0 0 5px var(--ok)' : 'none' }}
+                      />
                       <span style={{ fontSize: 10.5, fontWeight: 600, color: tunnel?.up ? 'var(--ok)' : 'var(--danger)' }}>
                         {tunnel?.up ? 'Online' : 'Offline'}
                       </span>
@@ -413,7 +457,7 @@ export default function Dashboard() {
                     {metricas.map((m) => (
                       <div key={m.rotulo} style={{ background: 'var(--surface)', padding: '9px 10px' }}>
                         <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.1 }}>{m.valor}</div>
-                        <div style={{ fontSize: 9.5, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>
+                        <div style={{ fontSize: 9.5, color: 'var(--text-3)', marginTop: 3 }}>
                           {m.rotulo}
                         </div>
                       </div>
@@ -504,14 +548,17 @@ export default function Dashboard() {
                       <button onClick={() => pingRele(equip.id)} disabled={rele?.loading} style={pingBtnStyle}>
                         {rele?.loading ? 'Consultando…' : 'Status'}
                       </button>
-                      <span style={{ fontSize: 11.5 }}>
+                      <span style={{ fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         {!rele && <span style={{ color: 'var(--text-3)' }}>ainda não consultado</span>}
                         {rele?.erro && <span style={{ color: 'var(--danger)' }}>{rele.erro}</span>}
                         {rele?.status && (
-                          <span style={{ color: releOnline ? 'var(--ok)' : 'var(--danger)' }}>
-                            {releOnline ? (fechado === true ? 'fechado' : fechado === false ? 'aberto' : 'online') : 'sem resposta'}
-                            {rele.verificadoAs ? ` · ${rele.verificadoAs}` : ''}
-                          </span>
+                          <>
+                            {releOnline && fechado !== null && <GlifoDisjuntor fechado={fechado} />}
+                            <span style={{ color: releOnline ? 'var(--ok)' : 'var(--danger)' }}>
+                              {releOnline ? (fechado === true ? 'fechado' : fechado === false ? 'aberto' : 'online') : 'sem resposta'}
+                              {rele.verificadoAs ? ` · ${rele.verificadoAs}` : ''}
+                            </span>
+                          </>
                         )}
                       </span>
                     </div>

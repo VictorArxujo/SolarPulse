@@ -47,6 +47,8 @@ services:
     build:
       context: ./frontend
     container_name: frontend
+    ports:
+      - "80:80"
     networks:
       - app_net
     depends_on:

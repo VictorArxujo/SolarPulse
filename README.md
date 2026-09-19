@@ -118,7 +118,7 @@ docker compose -f docker-compose.lan.yml exec api uv run alembic upgrade head
 docker compose -f docker-compose.lan.yml exec api uv run python -m scripts.create_admin
 ```
 
-Aplicação em **http://localhost:8081**.
+Aplicação em **http://localhost:8082**.
 
 Sem túnel nesta stack: o status de todas as usinas aparece offline e nenhum
 equipamento responde. É o esperado.
@@ -127,7 +127,7 @@ equipamento responde. É o esperado.
 
 | arquivo | para quê | túnel | portas publicadas |
 |---|---|---|---|
-| `docker-compose.lan.yml` | bancada local | não | frontend 8081, api 8000, db 5433 |
+| `docker-compose.lan.yml` | bancada local | não | frontend 8082, api 8000, db 5433 |
 | `docker-compose.vps.yml` | VPS, etapa 1 | não | só frontend (80) |
 | `docker-compose.yml` | alvo final | sim, via `vpn-gateway/` | via o container wireguard |
 

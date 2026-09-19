@@ -21,8 +21,8 @@
   --accent-soft: rgba(76, 141, 255, 0.12);
   --accent-border: rgba(76, 141, 255, 0.32);
 
-  --ok: #3ecf8e;
-  --ok-soft: rgba(62, 207, 142, 0.12);
+  --ok: #2ee6a0;
+  --ok-soft: rgba(46, 230, 160, 0.12);
   --danger: #ff6b6b;
   --danger-soft: rgba(255, 107, 107, 0.12);
   --danger-border: rgba(255, 107, 107, 0.32);
@@ -81,7 +81,7 @@ textarea {
 /* É um <button>: navegável por teclado e anunciado como alternável. */
 .card-usina {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: stretch;
   width: 100%;
   padding: 0;
@@ -90,10 +90,16 @@ textarea {
   text-align: left;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   overflow: hidden;
   cursor: pointer;
   transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+/* trilho de estado: mesma lógica de uma coluna de LED num painel de relé
+   de campo, não uma faixa decorativa de card genérico */
+.rail {
+  width: 4px;
+  flex-shrink: 0;
 }
 .card-usina:hover {
   border-color: var(--border-strong);
@@ -130,11 +136,23 @@ textarea {
   transition: width 0.3s ease;
 }
 
+/* pulso do LED de túnel ativo — único elemento com vida própria na tela,
+   pra não competir com o resto (regra: um só momento de movimento) */
+@keyframes pulso-led {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.led-on {
+  animation: pulso-led 2.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card-usina,
   .card-seta,
-  .medidor > i {
+  .medidor > i,
+  .led-on {
     transition: none;
+    animation: none;
   }
   .card-usina:hover {
     transform: none;
