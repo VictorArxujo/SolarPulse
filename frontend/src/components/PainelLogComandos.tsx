@@ -80,8 +80,8 @@ export default function PainelLogComandos({ usinas, gatilhoAtualizacao }: { usin
         </div>
       )}
 
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '108px 1fr 1fr 84px 1fr 68px 1.6fr', gap: 0, padding: '9px 16px 9px 20px', fontSize: 10, fontWeight: 600, color: 'var(--text-3)', letterSpacing: '0.02em', borderBottom: '1px solid var(--divider)' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto', overflowY: 'hidden' }}>
+        <div className="log-grade" style={{ display: 'grid', gridTemplateColumns: '108px 1fr 1fr 84px 1fr 68px 1.6fr', gap: 0, padding: '9px 16px 9px 20px', fontSize: 10, fontWeight: 600, color: 'var(--text-3)', letterSpacing: '0.02em', borderBottom: '1px solid var(--divider)' }}>
           <span>Horário</span>
           <span>Usina</span>
           <span>Equipamento</span>
@@ -101,7 +101,7 @@ export default function PainelLogComandos({ usinas, gatilhoAtualizacao }: { usin
           {logs.map((log) => (
             <div
               key={log.id}
-              className="log-row"
+              className="log-row log-grade"
               style={{
                 display: 'grid',
                 gridTemplateColumns: '108px 1fr 1fr 84px 1fr 68px 1.6fr',

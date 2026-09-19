@@ -255,3 +255,52 @@ textarea {
     transform: none;
   }
 }
+
+/* ---------------- layout responsivo ---------------- */
+/* Propriedades que precisam de valor diferente por breakpoint saem do
+   inline style (que sempre venceria a media query) e vivem só aqui. */
+.sidebar {
+  width: 216px;
+}
+.conteudo-principal {
+  padding: 24px 28px 60px;
+}
+.grade-usinas {
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+}
+.linha-dupla {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.modal-caixa {
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+.log-grade {
+  min-width: 700px;
+}
+
+@media (max-width: 760px) {
+  /* Sidebar vira um rail estreito de ícones — mantém a navegação sempre
+     visível sem tomar largura de tela, que é o recurso escasso no celular
+     (diferente de uma barra inferior, que tomaria altura). */
+  .sidebar {
+    width: 60px;
+  }
+  .sidebar-texto,
+  .rotulo-item,
+  .sidebar-relogio {
+    display: none;
+  }
+  .conteudo-principal {
+    padding: 16px 14px 40px;
+  }
+  .grade-usinas {
+    grid-template-columns: 1fr;
+  }
+  .linha-dupla {
+    grid-template-columns: 1fr;
+  }
+}

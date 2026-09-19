@@ -339,7 +339,7 @@ export default function Dashboard() {
 
       <Sidebar visao={visao} onVisao={setVisao} horaAtual={horaAtual} onLogout={logout} tema={tema} onAlternarTema={alternarTema} />
 
-      <div style={{ flex: 1, minWidth: 0, maxWidth: 1240, margin: '0 auto', padding: '24px 28px 60px', position: 'relative' }}>
+      <div className="conteudo-principal" style={{ flex: 1, minWidth: 0, maxWidth: 1240, margin: '0 auto', position: 'relative' }}>
         {erro && (
           <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--danger)', background: 'var(--danger-soft)', border: '1px solid var(--danger-border)', borderRadius: 6, padding: '10px 14px' }}>
             {erro}
@@ -355,7 +355,7 @@ export default function Dashboard() {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar usina ou localização"
-            style={{ height: 34, width: 260, padding: '0 12px', border: '1px solid var(--border-strong)', borderRadius: 6, fontSize: 12.5, color: 'var(--text)', background: 'var(--surface-3)' }}
+            style={{ height: 34, width: 'min(260px, 100%)', padding: '0 12px', border: '1px solid var(--border-strong)', borderRadius: 6, fontSize: 12.5, color: 'var(--text)', background: 'var(--surface-3)' }}
           />
           <div style={{ fontSize: 11.5, color: 'var(--text-2)', fontFamily: "'IBM Plex Mono', monospace" }}>
             {carregando ? 'carregando…' : `${usinasFiltradas.length} usina(s)`}
@@ -437,7 +437,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: 14, alignItems: 'start' }}>
+        <div className="grade-usinas" style={{ display: 'grid', gap: 14, alignItems: 'start' }}>
           {usinasFiltradas.map((usina) => {
             const tunnel = tunnelByUsina[usina.id];
             const equipamentos = equipByUsina[usina.id] ?? [];
@@ -657,7 +657,7 @@ export default function Dashboard() {
                   </fieldset>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <button
                     disabled={!comandosLiberados || fechado === true}
                     onClick={() => pedirConfirmacao(equip.id, 'religar', equip.nome)}
@@ -698,7 +698,7 @@ export default function Dashboard() {
 
       {pendente && (
         <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
-          <div style={{ width: 360, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '22px 24px', boxShadow: 'var(--shadow)' }}>
+          <div className="modal-caixa" style={{ width: 360, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '22px 24px', boxShadow: 'var(--shadow)' }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>Confirmação de segurança</div>
             <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5, marginBottom: 20 }}>
               Você vai atuar fisicamente no equipamento. Confirmar o comando "{pendente.label}"?
@@ -768,7 +768,7 @@ function NovaUsinaModal({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
-      <div style={{ width: 420, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '22px 24px', boxShadow: 'var(--shadow)' }}>
+      <div className="modal-caixa" style={{ width: 420, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '22px 24px', boxShadow: 'var(--shadow)' }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Nova usina</div>
         <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 18 }}>
           Depois de criar, adicione o peer correspondente no WireGuard e reinicie o container pra ela ficar acessível.
@@ -937,7 +937,7 @@ function EditarEquipamentoModal({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
-      <div style={{ width: 480, maxHeight: '85vh', overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '22px 24px', boxShadow: 'var(--shadow)' }}>
+      <div className="modal-caixa" style={{ width: 480, maxHeight: '85vh', overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '22px 24px', boxShadow: 'var(--shadow)' }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
           {equipamento ? `Editar ${equipamento.nome}` : 'Novo equipamento'}
         </div>
@@ -1054,7 +1054,7 @@ function Campo({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function LinhaDupla({ children }: { children: ReactNode }) {
-  return <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>{children}</div>;
+  return <div className="linha-dupla">{children}</div>;
 }
 
 function SecaoTitulo({ children }: { children: ReactNode }) {

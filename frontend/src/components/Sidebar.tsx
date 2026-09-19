@@ -47,8 +47,8 @@ export default function Sidebar({
 }) {
   return (
     <div
+      className="sidebar"
       style={{
-        width: 216,
         flexShrink: 0,
         height: '100vh',
         position: 'sticky',
@@ -65,7 +65,7 @@ export default function Sidebar({
             <path d="M13 2 L4 14 h6 l-1 8 9-12 h-6 z" />
           </svg>
         </div>
-        <div style={{ minWidth: 0 }}>
+        <div className="sidebar-texto" style={{ minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text)' }}>Religamento Remoto</div>
           <div style={{ fontSize: 9.5, color: 'var(--text-3)', marginTop: 1 }}>Supervisão via Modbus TCP</div>
         </div>
@@ -78,6 +78,7 @@ export default function Sidebar({
             <button
               key={item.key}
               className="nav-item"
+              title={item.label}
               onClick={() => onVisao(item.key)}
               style={{
                 display: 'flex',
@@ -98,7 +99,7 @@ export default function Sidebar({
               }}
             >
               {item.icone(ativo ? 'var(--accent)' : 'var(--text-3)')}
-              {item.label}
+              <span className="rotulo-item">{item.label}</span>
             </button>
           );
         })}
@@ -116,9 +117,9 @@ export default function Sidebar({
               <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z" />
             </svg>
           )}
-          {tema === 'dark' ? 'Tema claro' : 'Tema escuro'}
+          <span className="rotulo-item">{tema === 'dark' ? 'Tema claro' : 'Tema escuro'}</span>
         </button>
-        <span style={{ fontSize: 11.5, color: 'var(--text-3)', fontFamily: "'IBM Plex Mono', monospace" }}>{horaAtual}</span>
+        <span className="sidebar-relogio" style={{ fontSize: 11.5, color: 'var(--text-3)', fontFamily: "'IBM Plex Mono', monospace" }}>{horaAtual}</span>
         <button onClick={onLogout} style={sairBtnStyle}>
           Sair
         </button>
